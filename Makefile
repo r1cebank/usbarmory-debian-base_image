@@ -3,14 +3,15 @@ JOBS=2
 
 LINUX_VER=5.10.22
 LINUX_VER_MAJOR=${shell echo ${LINUX_VER} | cut -d '.' -f1,2}
-KBUILD_BUILD_USER=usbarmory
-KBUILD_BUILD_HOST=f-secure-foundry
+KBUILD_BUILD_USER=r1cebank
+KBUILD_BUILD_HOST=diva-eng
 LOCALVERSION=-0
 UBOOT_VER=2021.01
+BUSYBOX_VER=1.33.0
 ARMORYCTL_VER=1.1
 APT_GPG_KEY=CEADE0CF01939B21
 
-USBARMORY_REPO=https://raw.githubusercontent.com/f-secure-foundry/usbarmory/master
+USBARMORY_REPO=https://raw.githubusercontent.com/r1cebank/usbarmory/master
 ARMORYCTL_REPO=https://github.com/f-secure-foundry/armoryctl
 MXC_SCC2_REPO=https://github.com/f-secure-foundry/mxc-scc2
 MXS_DCP_REPO=https://github.com/f-secure-foundry/mxs-dcp
@@ -74,6 +75,7 @@ u-boot-${UBOOT_VER}/u-boot.bin: check_version u-boot-${UBOOT_VER}.tar.bz2
 #### debian ####
 
 DEBIAN_DEPS := check_version
+DEBIAN_DEPS += armoryctl_${ARMORYCTL_VER}_armhf.deb
 DEBIAN_DEPS += linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 DEBIAN_DEPS += linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 usbarmory-${IMG_VERSION}.raw: $(DEBIAN_DEPS)
@@ -151,13 +153,44 @@ usbarmory-${IMG_VERSION}.raw.xz: usbarmory-${IMG_VERSION}.raw u-boot-${UBOOT_VER
 	fi
 	xz -k usbarmory-${IMG_VERSION}.raw
 
+#### cryptsetup ####
+cryptsetup:
+	tar -xvzf cryptsetup.tar.gz
+
+#### busybox ####
+busybox-${BUSYBOX_VER}.tar.bz2:
+	wget https://www.busybox.net/downloads/busybox-${BUSYBOX_VER}.tar.bz2 -O busybox-${BUSYBOX_VER}.tar.bz2
+	wget https://www.busybox.net/downloads/busybox-${BUSYBOX_VER}.tar.bz2.sig -O busybox-${BUSYBOX_VER}.tar.bz2.sig
+
+busybox-bin-${BUSYBOX_VER}: busybox-${BUSYBOX_VER}.tar.bz2
+	gpg --verify busybox-${BUSYBOX_VER}.tar.bz2.sig
+	tar xfm busybox-${BUSYBOX_VER}.tar.bz2
+	cd busybox-${BUSYBOX_VER} && \
+		make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- defconfig && \
+		sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config && \
+		make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- install
+
+#### initramfs ####
+initramfs: busybox-bin-${BUSYBOX_VER} cryptsetup
+	mkdir -pv initramfs/{bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,lib64,mnt/root,root}
+	cp -av busybox-${BUSYBOX_VER}/_install/* initramfs
+	cp init initramfs
+	chmod +x initramfs/init
+	mkdir -p initramfs/dev
+	cp prebuilt/dcp_derive initramfs/usr/sbin
+	cp prebuilt/*.ko initramfs/lib/modules
+	cd initramfs/dev && \
+		mknod -m 622 console c 5 1 && \
+		mknod -m 622 tty0 c 4 0
+	cp -av cryptsetup/* initramfs
+
 #### linux ####
 
 linux-${LINUX_VER}.tar.xz:
 	wget https://www.kernel.org/pub/linux/kernel/v5.x/linux-${LINUX_VER}.tar.xz -O linux-${LINUX_VER}.tar.xz
 	wget https://www.kernel.org/pub/linux/kernel/v5.x/linux-${LINUX_VER}.tar.sign -O linux-${LINUX_VER}.tar.sign
 
-linux-${LINUX_VER}/arch/arm/boot/zImage: check_version linux-${LINUX_VER}.tar.xz
+linux-${LINUX_VER}/arch/arm/boot/zImage: check_version initramfs linux-${LINUX_VER}.tar.xz
 	@if [ ! -d "linux-${LINUX_VER}" ]; then \
 		unxz --keep linux-${LINUX_VER}.tar.xz; \
 		gpg --verify linux-${LINUX_VER}.tar.sign; \
@@ -167,6 +200,7 @@ linux-${LINUX_VER}/arch/arm/boot/zImage: check_version linux-${LINUX_VER}.tar.xz
 	if test "${V}" = "mark-two"; then \
 		wget ${USBARMORY_REPO}/software/kernel_conf/${V}/${IMX}-usbarmory.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dts; \
 	fi
+	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="\/opt\/armory\/initramfs"/g' linux-${LINUX_VER}/.config
 	cd linux-${LINUX_VER} && \
 		KBUILD_BUILD_USER=${KBUILD_BUILD_USER} \
 		KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST} \
@@ -311,7 +345,7 @@ armoryctl_${ARMORYCTL_VER}_armhf.deb: armoryctl-${ARMORYCTL_VER}/armoryctl
 #### targets ####
 
 .PHONY: u-boot debian debian-xz linux linux-image-deb linux-headers-deb
-.PHONY: mxs-dcp mxc-scc2 caam-keyblob armoryctl armoryctl-deb
+.PHONY: mxs-dcp mxc-scc2 caam-keyblob armoryctl armoryctl-deb busybox
 
 u-boot: u-boot-${UBOOT_VER}/u-boot.bin
 debian: usbarmory-${IMG_VERSION}.raw
@@ -320,6 +354,7 @@ linux: linux-${LINUX_VER}/arch/arm/boot/zImage
 linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 mxs-dcp: mxs-dcp-master/mxs-dcp.ko
+busybox: busybox-bin-${BUSYBOX_VER}
 mxc-scc2: mxc-scc2-master/mxc-scc2.ko
 caam-keyblob: caam-keyblob-master/caam-keyblob.ko
 armoryctl: armoryctl-${ARMORYCTL_VER}/armoryctl
@@ -329,8 +364,8 @@ release: check_version usbarmory-${IMG_VERSION}.raw.xz
 	sha256sum usbarmory-${IMG_VERSION}.raw.xz > usbarmory-${IMG_VERSION}.raw.xz.sha256
 
 clean:
-	-rm -fr armoryctl* linux-* linux-image-* linux-headers-* u-boot-*
+	-rm -fr armoryctl* linux-* linux-image-* linux-headers-* u-boot-* busybox-* initramfs cryptsetup
 	-rm -fr mxc-scc2-master* mxs-dcp-master* caam-keyblob-master*
-	-rm -f usbarmory-*.raw
+	-rm -f usbarmory-*
 	-sudo umount -f rootfs
 	-rmdir rootfs
