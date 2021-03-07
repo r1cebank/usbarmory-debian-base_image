@@ -1,16 +1,23 @@
-FROM debian:10
+FROM ubuntu:20.04
 
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y \
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y \
     bc binfmt-support bzip2 fakeroot gcc gcc-arm-linux-gnueabihf \
     git gnupg make parted rsync qemu-user-static wget xz-utils zip \
-    debootstrap sudo dirmngr bison flex libssl-dev kmod udev cpio
+    debootstrap sudo dirmngr bison flex libssl-dev kmod udev cpio uuid-dev \
+    libdevmapper-dev gettext libpopt-dev libgcrypt20-dev autopoint automake autoconf \
+    libtool pkg-config libjson-c-dev libblkid-dev
 
 # import U-Boot signing keys
 RUN gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 38DBBDC86092693E && \
     gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 147C39FF9634B72C && \
-# import golang signing keys
-    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 7721F63BD38B4796
+    # import golang signing keys
+    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 7721F63BD38B4796 && \
+    # import busybox signing keys
+    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys C9E9416F76E610DBD09D040F47B70C55ACC9965B && \
+    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 2A2918243FDE46648D0686F9D9B0577BD93E98FC
+
+
 
 # install golang
 ENV GOLANG_VERSION="1.15.6"

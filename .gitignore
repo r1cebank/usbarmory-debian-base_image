@@ -1,5 +1,11 @@
 linux-*
-mxc-scc2-master*
+mxc*
+mxs*
 usbarmory-mark-*
 u-boot*
 rootfs*
+busybox-*
+initramfs
+armoryctl*
+caam-*
+cryptsetup*
