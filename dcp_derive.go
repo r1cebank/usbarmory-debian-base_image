@@ -60,13 +60,9 @@ type af_alg_iv struct {
 // NIST AES-128-CBC test vector
 const TEST_KEY = "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c"
 
-var test bool
-
 func init() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stdout)
-
-	flag.BoolVar(&test, "t", false, "test mode (skcipher cbc(aes) w/ test key)")
 
 	flag.Usage = func() {
 		log.Println("usage: [enc|dec] [cleartext] [diversifier]")
@@ -133,10 +129,6 @@ func encrypt(inputString string, diversifier []byte) (result string) {
 		return
 	}
 
-	if err != nil {
-		return
-	}
-
 	result, err = encryptString(key, inputString)
 
 	return result
@@ -148,10 +140,6 @@ func decrypt(inputString string, diversifier []byte) (result string) {
 	// filled.
 	iv := make([]byte, aes.BlockSize)
 	key, err := DCPDeriveKey(diversifier, iv)
-
-	if err != nil {
-		return
-	}
 
 	if err != nil {
 		return
@@ -169,6 +157,7 @@ func DCPDeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 	fd, err := unix.Socket(unix.AF_ALG, unix.SOCK_SEQPACKET, 0)
 
 	if err != nil {
+		log.Printf("error: %s", err)
 		return
 	}
 	defer unix.Close(fd)
@@ -178,31 +167,24 @@ func DCPDeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 		Name: "cbc-aes-dcp",
 	}
 
-	if test {
-		addr.Type = "skcipher"
-		addr.Name = "cbc(aes)"
-	}
-
 	err = unix.Bind(fd, addr)
 
 	if err != nil {
+		log.Printf("error: %s", err)
 		return
 	}
 
-	if test {
-		err = syscall.SetsockoptString(fd, unix.SOL_ALG, unix.ALG_SET_KEY, TEST_KEY)
-	} else {
-		// https://github.com/golang/go/issues/31277
-		// SetsockoptString does not allow empty strings
-		_, _, e1 := syscall.Syscall6(syscall.SYS_SETSOCKOPT, uintptr(fd), uintptr(unix.SOL_ALG), uintptr(unix.ALG_SET_KEY), uintptr(0), uintptr(0), 0)
+	// https://github.com/golang/go/issues/31277
+	// SetsockoptString does not allow empty strings
+	_, _, e1 := syscall.Syscall6(syscall.SYS_SETSOCKOPT, uintptr(fd), uintptr(unix.SOL_ALG), uintptr(unix.ALG_SET_KEY), uintptr(0), uintptr(0), 0)
 
-		if e1 != 0 {
-			err = errors.New("setsockopt failed")
-			return
-		}
+	if e1 != 0 {
+		err = errors.New("setsockopt failed")
+		return
 	}
 
 	if err != nil {
+		log.Printf("error: %s", err)
 		return
 	}
 
@@ -216,6 +198,7 @@ func encryptString(key []byte, message string) (encmess string, err error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
+		log.Printf("error: %s", err)
 		return
 	}
 
@@ -224,6 +207,7 @@ func encryptString(key []byte, message string) (encmess string, err error) {
 	cipherText := make([]byte, aes.BlockSize+len(plainText))
 	iv := cipherText[:aes.BlockSize]
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		log.Printf("error: %s", err)
 		return
 	}
 
