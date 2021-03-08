@@ -11,4 +11,16 @@ mount -t debugfs none /sys/kernel/debug
 
 echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n"
 
+echo -e "********** Starting custom unlock script **********\n"
+
+echo -e "**********    Loading kernel modules     **********\n"
+echo -e "Loading: af_alg\n"
+modprobe af_alg
+echo -e "Loading: mxs_dcp\n"
+modprobe mxs_dcp
+
+echo -e "**********   Kernel modules loaded       **********\n"
+
+echo -e "If you are in secure state, please use dcp_derive enc [password] [diversifier] to create your derived LUKS password"
+
 exec /bin/sh

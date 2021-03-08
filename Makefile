@@ -153,10 +153,6 @@ usbarmory-${IMG_VERSION}.raw.xz: usbarmory-${IMG_VERSION}.raw u-boot-${UBOOT_VER
 	fi
 	xz -k usbarmory-${IMG_VERSION}.raw
 
-#### cryptsetup ####
-cryptsetup:
-	tar -xvzf cryptsetup.tar.gz
-
 #### busybox ####
 busybox-${BUSYBOX_VER}.tar.bz2:
 	wget https://www.busybox.net/downloads/busybox-${BUSYBOX_VER}.tar.bz2 -O busybox-${BUSYBOX_VER}.tar.bz2
@@ -171,18 +167,21 @@ busybox-bin-${BUSYBOX_VER}: busybox-${BUSYBOX_VER}.tar.bz2
 		make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- install
 
 #### initramfs ####
-initramfs: busybox-bin-${BUSYBOX_VER} cryptsetup
-	mkdir -pv initramfs/{bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,lib64,mnt/root,root}
+initramfs: busybox-bin-${BUSYBOX_VER}
+	mkdir -pv initramfs/{bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},run/cryptsetup,lib/modules,lib64,mnt/root,root}
 	cp -av busybox-${BUSYBOX_VER}/_install/* initramfs
 	cp init initramfs
 	chmod +x initramfs/init
 	mkdir -p initramfs/dev
 	cp prebuilt/dcp_derive initramfs/usr/sbin
-	cp prebuilt/*.ko initramfs/lib/modules
+	chmod +x initramfs/usr/sbin/dcp_derive
+	mkdir -p initramfs/lib/modules/${LINUX_VER}-0
+	cp prebuilt/*.ko initramfs/lib/modules/${LINUX_VER}-0
+	cp -av prebuilt/modules initramfs/lib
 	cd initramfs/dev && \
 		mknod -m 622 console c 5 1 && \
 		mknod -m 622 tty0 c 4 0
-	cp -av cryptsetup/* initramfs
+	cp -av prebuilt/cryptsetup/* initramfs
 
 #### linux ####
 
