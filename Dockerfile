@@ -4,9 +4,7 @@ RUN apt-get update && apt-get upgrade -y
 RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y \
     bc binfmt-support bzip2 fakeroot gcc gcc-arm-linux-gnueabihf \
     git gnupg make parted rsync qemu-user-static wget xz-utils zip \
-    debootstrap sudo dirmngr bison flex libssl-dev kmod udev cpio uuid-dev \
-    libdevmapper-dev gettext libpopt-dev libgcrypt20-dev autopoint automake autoconf \
-    libtool pkg-config libjson-c-dev libblkid-dev
+    debootstrap sudo dirmngr bison flex libssl-dev kmod udev cpio u-boot-tools
 
 # import U-Boot signing keys
 RUN gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 38DBBDC86092693E && \
@@ -14,10 +12,7 @@ RUN gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 38DBBDC
     # import golang signing keys
     gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 7721F63BD38B4796 && \
     # import busybox signing keys
-    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys C9E9416F76E610DBD09D040F47B70C55ACC9965B && \
-    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 2A2918243FDE46648D0686F9D9B0577BD93E98FC
-
-
+    gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys C9E9416F76E610DBD09D040F47B70C55ACC9965B
 
 # install golang
 ENV GOLANG_VERSION="1.15.6"
@@ -29,5 +24,10 @@ RUN tar -C /usr/local -xzf go.tgz && rm go.tgz
 
 ENV PATH "$PATH:/usr/local/go/bin"
 ENV GOPATH /go
+
+RUN git clone https://github.com/f-secure-foundry/tamago-go -b latest /opt/tamago-go
+RUN cd /opt/tamago-go/src && ./all.bash
+
+ENV TAMAGO /opt/tamago-go/bin/go
 
 WORKDIR /opt/armory

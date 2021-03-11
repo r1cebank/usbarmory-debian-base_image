@@ -11,6 +11,12 @@ BUSYBOX_VER=1.33.0
 ARMORYCTL_VER=1.1
 APT_GPG_KEY=CEADE0CF01939B21
 
+# The starting of the boot partition
+BOOT_OFFSET=5242880
+BOOT_CONSOLE=on
+BOOTLOADER=armory-boot
+
+ARMORY_BOOT_REPO=https://github.com/r1cebank/armory-boot
 USBARMORY_REPO=https://raw.githubusercontent.com/r1cebank/usbarmory/master
 ARMORYCTL_REPO=https://github.com/f-secure-foundry/armoryctl
 MXC_SCC2_REPO=https://github.com/f-secure-foundry/mxc-scc2
@@ -26,27 +32,23 @@ BOOT ?= uSD
 BOOT_PARSED=$(shell echo "${BOOT}" | tr '[:upper:]' '[:lower:]')
 
 check_version:
-	@if test "${V}" = "mark-one"; then \
-		if test "${BOOT}" != "uSD"; then \
-			echo "invalid target, mark-one BOOT options are: uSD"; \
-			exit 1; \
-		elif test "${IMX}" != "imx53"; then \
-			echo "invalid target, mark-one IMX options are: imx53"; \
-			exit 1; \
-		fi \
-	elif test "${V}" = "mark-two"; then \
-		if test "${BOOT}" != "uSD" && test "${BOOT}" != eMMC; then \
+	@if test "${BOOT}" != "uSD" && test "${BOOT}" != eMMC; then \
 			echo "invalid target, mark-two BOOT options are: uSD, eMMC"; \
 			exit 1; \
 		elif test "${IMX}" != "imx6ul" && test "${IMX}" != "imx6ulz"; then \
 			echo "invalid target, mark-two IMX options are: imx6ul, imx6ulz"; \
 			exit 1; \
-		fi \
-	else \
-		echo "invalid target - V options are: mark-one, mark-two"; \
-		exit 1; \
 	fi
 	@echo "target: USB armory V=${V} IMX=${IMX} BOOT=${BOOT}"
+
+#### armory-boot ####
+armory-boot-master.zip:
+	wget ${ARMORY_BOOT_REPO}/archive/master.zip -O armory-boot-master.zip
+
+armory-boot-master: armory-boot-master.zip
+	unzip -o armory-boot-master.zip
+armory-boot.imx: armory-boot-master
+	cd armory-boot-master && make BUILD_USER=${KBUILD_BUILD_USER} BUILD_HOST=${KBUILD_BUILD_HOST} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx BOOT=${BOOT} CONSOLE=${BOOT_CONSOLE} START=${BOOT_OFFSET}
 
 #### u-boot ####
 
@@ -58,17 +60,14 @@ u-boot-${UBOOT_VER}/u-boot.bin: check_version u-boot-${UBOOT_VER}.tar.bz2
 	gpg --verify u-boot-${UBOOT_VER}.tar.bz2.sig
 	tar xfm u-boot-${UBOOT_VER}.tar.bz2
 	cd u-boot-${UBOOT_VER} && make distclean
-	@if test "${V}" = "mark-one"; then \
-		cd u-boot-${UBOOT_VER} && make usbarmory_config; \
-	elif test "${V}" = "mark-two"; then \
-		cd u-boot-${UBOOT_VER} && \
+	cd u-boot-${UBOOT_VER} && \
 		wget ${USBARMORY_REPO}/software/u-boot/0001-ARM-mx6-add-support-for-USB-armory-Mk-II-board.patch && \
 		patch -p1 < 0001-ARM-mx6-add-support-for-USB-armory-Mk-II-board.patch && \
-		make usbarmory-mark-two_defconfig; \
-		if test "${BOOT}" = "eMMC"; then \
+		make usbarmory-mark-two_defconfig
+	@if test "${BOOT}" = "eMMC"; then \
+		cd u-boot-${UBOOT_VER} && \
 			sed -i -e 's/CONFIG_SYS_BOOT_DEV_MICROSD=y/# CONFIG_SYS_BOOT_DEV_MICROSD is not set/' .config; \
 			sed -i -e 's/# CONFIG_SYS_BOOT_DEV_EMMC is not set/CONFIG_SYS_BOOT_DEV_EMMC=y/' .config; \
-		fi \
 	fi
 	cd u-boot-${UBOOT_VER} && CROSS_COMPILE=arm-linux-gnueabihf- ARCH=arm make -j${JOBS}
 
@@ -102,9 +101,6 @@ usbarmory-${IMG_VERSION}.raw: $(DEBIAN_DEPS)
 	sudo chroot rootfs systemctl mask getty-static.service
 	sudo chroot rootfs systemctl mask display-manager.service
 	sudo chroot rootfs systemctl mask hwclock-save.service
-	@if test "${V}" = "mark-one"; then \
-		sudo chroot rootfs systemctl mask rng-tools.service; \
-	fi
 	@if test "${V}" = "mark-two"; then \
 		sudo chroot rootfs systemctl mask haveged.service; \
 	fi
@@ -128,15 +124,13 @@ usbarmory-${IMG_VERSION}.raw: $(DEBIAN_DEPS)
 	sudo cp linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
 	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 	sudo rm rootfs/tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
-	@if test "${V}" = "mark-two"; then \
-		sudo cp armoryctl_${ARMORYCTL_VER}_armhf.deb rootfs/tmp/; \
-		sudo chroot rootfs /usr/bin/dpkg -i /tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb; \
-		sudo rm rootfs/tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb; \
-		if test "${BOOT}" = "uSD"; then \
-			echo "/dev/mmcblk0 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
-		else \
-			echo "/dev/mmcblk1 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
-		fi \
+	sudo cp armoryctl_${ARMORYCTL_VER}_armhf.deb rootfs/tmp/
+	sudo chroot rootfs /usr/bin/dpkg -i /tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
+	sudo rm rootfs/tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
+	@if test "${BOOT}" = "uSD"; then \
+		echo "/dev/mmcblk0 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
+	else \
+		echo "/dev/mmcblk1 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
 	fi
 	sudo chroot rootfs apt-get clean
 	sudo chroot rootfs fake-hwclock
@@ -145,10 +139,17 @@ usbarmory-${IMG_VERSION}.raw: $(DEBIAN_DEPS)
 
 #### debian-xz ####
 
-usbarmory-${IMG_VERSION}.raw.xz: usbarmory-${IMG_VERSION}.raw u-boot-${UBOOT_VER}/u-boot.bin
-	@if test "${V}" = "mark-one"; then \
-		sudo dd if=u-boot-${UBOOT_VER}/u-boot.imx of=usbarmory-${IMG_VERSION}.raw bs=512 seek=2 conv=fsync conv=notrunc; \
-	elif test "${V}" = "mark-two"; then \
+IMAGE_DEPS := check_version
+ifeq ($(BOOTLOADER),armory-boot)
+IMAGE_DEPS += armory-boot.imx
+endif
+ifeq ($(BOOTLOADER),u-boot)
+IMAGE_DEPS += u-boot-${UBOOT_VER}/u-boot.bin
+endif
+usbarmory-${IMG_VERSION}.raw.xz: usbarmory-${IMG_VERSION}.raw $(IMAGE_DEPS)
+	@if test "${BOOTLOADER}" = "armory-boot"; then \
+		sudo dd if=armory-boot-master/armory-boot.imx of=usbarmory-${IMG_VERSION}.raw bs=512 seek=2 conv=fsync conv=notrunc; \
+	else \
 		sudo dd if=u-boot-${UBOOT_VER}/u-boot-dtb.imx of=usbarmory-${IMG_VERSION}.raw bs=512 seek=2 conv=fsync conv=notrunc; \
 	fi
 	xz -k usbarmory-${IMG_VERSION}.raw
@@ -168,7 +169,7 @@ busybox-bin-${BUSYBOX_VER}: busybox-${BUSYBOX_VER}.tar.bz2
 
 #### initramfs ####
 initramfs: busybox-bin-${BUSYBOX_VER}
-	mkdir -pv initramfs/{bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},run/cryptsetup,lib/modules,lib64,mnt/root,root}
+	mkdir -pv initramfs/{bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,lib64,mnt/root,root}
 	cp -av busybox-${BUSYBOX_VER}/_install/* initramfs
 	cp init initramfs
 	chmod +x initramfs/init
@@ -176,8 +177,8 @@ initramfs: busybox-bin-${BUSYBOX_VER}
 	cp prebuilt/dcp_derive initramfs/usr/sbin
 	chmod +x initramfs/usr/sbin/dcp_derive
 	mkdir -p initramfs/lib/modules/${LINUX_VER}-0
+	# cp -av prebuilt/modules initramfs/lib
 	cp prebuilt/*.ko initramfs/lib/modules/${LINUX_VER}-0
-	cp -av prebuilt/modules initramfs/lib
 	cd initramfs/dev && \
 		mknod -m 622 console c 5 1 && \
 		mknod -m 622 tty0 c 4 0
@@ -240,27 +241,11 @@ caam-keyblob-master: caam-keyblob-master.zip
 caam-keyblob-master/caam-keyblob.ko: caam-keyblob-master linux-${LINUX_VER}/arch/arm/boot/zImage
 	cd caam-keyblob-master && make KBUILD_BUILD_USER=${KBUILD_BUILD_USER} KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KERNEL_SRC=../linux-${LINUX_VER} -j${JOBS} all
 
-#### dtb ####
-
-extra-dtb: check_version linux-${LINUX_VER}/arch/arm/boot/zImage
-	wget ${USBARMORY_REPO}/software/kernel_conf/mark-one/usbarmory_linux-${LINUX_VER_MAJOR}.config -O linux-${LINUX_VER}/.config
-	wget ${USBARMORY_REPO}/software/kernel_conf/mark-one/imx53-usbarmory-host.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/imx53-usbarmory-host.dts
-	wget ${USBARMORY_REPO}/software/kernel_conf/mark-one/imx53-usbarmory-gpio.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/imx53-usbarmory-gpio.dts
-	wget ${USBARMORY_REPO}/software/kernel_conf/mark-one/imx53-usbarmory-spi.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/imx53-usbarmory-spi.dts
-	wget ${USBARMORY_REPO}/software/kernel_conf/mark-one/imx53-usbarmory-i2c.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/imx53-usbarmory-i2c.dts
-	wget ${USBARMORY_REPO}/software/kernel_conf/mark-one/imx53-usbarmory-scc2.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/imx53-usbarmory-scc2.dts
-	cd linux-${LINUX_VER} && KBUILD_BUILD_USER=${KBUILD_BUILD_USER} KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST} LOCALVERSION=${LOCALVERSION} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- make -j${JOBS} imx53-usbarmory-host.dtb imx53-usbarmory-gpio.dtb imx53-usbarmory-spi.dtb imx53-usbarmory-i2c.dtb imx53-usbarmory-scc2.dtb
-
 #### linux-image-deb ####
 
 KERNEL_DEPS := check_version
 KERNEL_DEPS += linux-${LINUX_VER}/arch/arm/boot/zImage
-ifeq ($(V),mark-one)
-KERNEL_DEPS += extra-dtb mxc-scc2
-endif
-ifeq ($(V),mark-two)
 KERNEL_DEPS += mxs-dcp caam-keyblob
-endif
 linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb: $(KERNEL_DEPS)
 	mkdir -p linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules}
 	cat control_template_linux | \
@@ -277,19 +262,19 @@ linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.
 	cp -r linux-${LINUX_VER}/System.map linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory
 	cd linux-${LINUX_VER} && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm modules_install
 	cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb
-	@if test "${IMX}" = "imx53"; then \
-		cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory-host.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-host-${LINUX_VER}${LOCALVERSION}.dtb; \
-		cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory-spi.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-spi-${LINUX_VER}${LOCALVERSION}.dtb; \
-		cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory-gpio.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-gpio-${LINUX_VER}${LOCALVERSION}.dtb; \
-		cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory-i2c.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-i2c-${LINUX_VER}${LOCALVERSION}.dtb; \
-		cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory-scc2.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-scc2-${LINUX_VER}${LOCALVERSION}.dtb; \
-		cd mxc-scc2-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
-	fi
 	@if test "${IMX}" = "imx6ulz"; then \
 		cd mxs-dcp-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
 	@if test "${IMX}" = "imx6ul"; then \
 		cd caam-keyblob-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
+	fi
+	@if test "${BOOTLOADER}" = "armory-boot"; then \
+		cp -r armory-boot.conf.tmpl linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/armory-boot.conf; \
+		cat linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/armory-boot.conf | \
+		sed -e 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/'  | \
+		sed -e 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' | \
+		sed -e 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' | \
+		sed -e 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' > linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/armory-boot.conf; \
 	fi
 	cd linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot ; ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage
 	cd linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot ; ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb
@@ -358,13 +343,14 @@ mxc-scc2: mxc-scc2-master/mxc-scc2.ko
 caam-keyblob: caam-keyblob-master/caam-keyblob.ko
 armoryctl: armoryctl-${ARMORYCTL_VER}/armoryctl
 armoryctl-deb: armoryctl_${ARMORYCTL_VER}_armhf.deb
+armory-boot: armory-boot.imx
 
 release: check_version usbarmory-${IMG_VERSION}.raw.xz
 	sha256sum usbarmory-${IMG_VERSION}.raw.xz > usbarmory-${IMG_VERSION}.raw.xz.sha256
 
 clean:
 	-rm -fr armoryctl* linux-* linux-image-* linux-headers-* u-boot-* busybox-* initramfs cryptsetup
-	-rm -fr mxc-scc2-master* mxs-dcp-master* caam-keyblob-master*
+	-rm -fr mxc-scc2-master* mxs-dcp-master* caam-keyblob-master* armory-boot-master*
 	-rm -f usbarmory-*
 	-sudo umount -f rootfs
 	-rmdir rootfs
