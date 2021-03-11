@@ -47,14 +47,11 @@ Launch the following command to download and build the image:
 
 ```
 # For the USB armory Mk II (external microSD)
-make V=mark-two IMX=imx6ulz BOOT=uSD
+make IMX=imx6ulz BOOT=uSD
 
 # For the USB armory Mk II (internal eMMC)
-make V=mark-two IMX=imx6ulz BOOT=eMMC
+make IMX=imx6ulz BOOT=eMMC
 
-# For the USB armory Mk I
-make V=mark-one IMX=imx53
-```
 
 The following output files are produced:
 
@@ -62,9 +59,6 @@ The following output files are produced:
 # For the USB armory Mk II
 usbarmory-mark-two-debian_buster-base_image-YYYYMMDD.raw
 
-# For the USB armory Mk I
-usbarmory-mark-one-debian_buster-base_image-YYYYMMDD.raw
-```
 
 ## Installation
 
@@ -108,7 +102,7 @@ Load the [armory-ums](https://github.com/f-secure-foundry/armory-ums/releases)
 firmware using the [armory-boot-usb](https://github.com/f-secure-foundry/armory-boot/tree/master/cmd/armory-boot-usb) utility:
 
 ```
-sydo armory-boot-usb -i armory-ums.imx
+sudo armory-boot-usb -i armory-ums.imx
 ```
 
 Once loaded, the host kernel should detect a USB storage device, corresponding
@@ -122,6 +116,12 @@ as gateway). Connection can be accomplished via SSH to 10.0.0.1, with default
 user `usbarmory` and password `usbarmory`. NOTE: There is a DHCP server running
 by default. Alternatively the host interface IP address can be statically set
 to 10.0.0.2/24.
+
+## Debug accessory
+Once the debug accessory is connected, use the following to view serial console
+```
+picocom -b 115200 -eb /dev/ttyUSB2 --imap lfcrlf
+```
 
 ## LED feedback
 

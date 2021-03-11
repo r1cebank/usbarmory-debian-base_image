@@ -57,9 +57,6 @@ type af_alg_iv struct {
 	iv    [aes.BlockSize]byte
 }
 
-// NIST AES-128-CBC test vector
-const TEST_KEY = "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c"
-
 func init() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stdout)
@@ -176,9 +173,9 @@ func DCPDeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 
 	// https://github.com/golang/go/issues/31277
 	// SetsockoptString does not allow empty strings
-	_, _, e1 := syscall.Syscall6(syscall.SYS_SETSOCKOPT, uintptr(fd), uintptr(unix.SOL_ALG), uintptr(unix.ALG_SET_KEY), uintptr(0), uintptr(0), 0)
+	e1 := syscall.SetsockoptString(fd, unix.SOL_ALG, unix.ALG_SET_KEY, "")
 
-	if e1 != 0 {
+	if e1 != nil {
 		err = errors.New("setsockopt failed")
 		return
 	}
