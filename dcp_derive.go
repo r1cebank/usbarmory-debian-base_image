@@ -154,7 +154,7 @@ func DCPDeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 	fd, err := unix.Socket(unix.AF_ALG, unix.SOCK_SEQPACKET, 0)
 
 	if err != nil {
-		log.Printf("error: %s", err)
+		log.Printf("unix.Socket error: %s", err)
 		return
 	}
 	defer unix.Close(fd)
@@ -167,21 +167,14 @@ func DCPDeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 	err = unix.Bind(fd, addr)
 
 	if err != nil {
-		log.Printf("error: %s", err)
+		log.Printf("unix.Bind error: %s", err)
 		return
 	}
 
-	// https://github.com/golang/go/issues/31277
-	// SetsockoptString does not allow empty strings
 	e1 := syscall.SetsockoptString(fd, unix.SOL_ALG, unix.ALG_SET_KEY, "")
 
 	if e1 != nil {
 		err = errors.New("setsockopt failed")
-		return
-	}
-
-	if err != nil {
-		log.Printf("error: %s", err)
 		return
 	}
 
@@ -275,6 +268,7 @@ func cryptoAPI(fd uintptr, mode uint32, iv []byte, input []byte) (output []byte,
 	err = syscall.Sendmsg(int(fd), input, cmsg, nil, 0)
 
 	if err != nil {
+		log.Printf("cryptoAPI syscall.Sendmsg error: %s", err)
 		return
 	}
 
