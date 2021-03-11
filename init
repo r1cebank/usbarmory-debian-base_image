@@ -10,4 +10,24 @@ mount -t sysfs none /sys
 mount -t debugfs none /sys/kernel/debug
 mount -n -t tmpfs    tmpfs    /run
 
+echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n" > /dev/kmsg
+
+echo -e "********** Starting custom unlock script **********\n" > /dev/kmsg
+
+echo -e "**********    Loading kernel modules     **********\n" > /dev/kmsg
+echo -e "Loading: af_alg\n" > /dev/kmsg
+modprobe af_alg
+echo -e "Loading: algif_hash\n" > /dev/kmsg
+modprobe algif_hash
+echo -e "Loading: algif_skcipher\n" > /dev/kmsg
+modprobe algif_skcipher
+echo -e "Loading: algif_rng\n" > /dev/kmsg
+modprobe algif_rng
+echo -e "Loading: mxs_dcp\n" > /dev/kmsg
+modprobe mxs_dcp
+
+echo -e "**********   Kernel modules loaded       **********\n" > /dev/kmsg
+
+echo -e "If you are in secure state, please use dcp_derive enc [password] [diversifier] to create your derived LUKS password"
+
 exec /bin/sh

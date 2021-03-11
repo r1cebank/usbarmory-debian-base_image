@@ -1,7 +1,8 @@
 SHELL = /bin/bash
 JOBS=2
 
-LINUX_VER=5.10.22
+# LINUX_VER=5.10.22
+LINUX_VER=5.4.87
 LINUX_VER_MAJOR=${shell echo ${LINUX_VER} | cut -d '.' -f1,2}
 KBUILD_BUILD_USER=r1cebank
 KBUILD_BUILD_HOST=diva-eng
@@ -169,7 +170,7 @@ busybox-bin-${BUSYBOX_VER}: busybox-${BUSYBOX_VER}.tar.bz2
 
 #### initramfs ####
 initramfs: busybox-bin-${BUSYBOX_VER}
-	mkdir -pv initramfs/{bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,lib64,mnt/root,root}
+	mkdir -pv initramfs/{bin,dev,sbin,etc,run,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,lib64,mnt/root,root}
 	cp -av busybox-${BUSYBOX_VER}/_install/* initramfs
 	cp init initramfs
 	chmod +x initramfs/init
@@ -177,7 +178,6 @@ initramfs: busybox-bin-${BUSYBOX_VER}
 	cp prebuilt/dcp_derive initramfs/usr/sbin
 	chmod +x initramfs/usr/sbin/dcp_derive
 	mkdir -p initramfs/lib/modules/${LINUX_VER}-0
-	# cp -av prebuilt/modules initramfs/lib
 	cp prebuilt/*.ko initramfs/lib/modules/${LINUX_VER}-0
 	cd initramfs/dev && \
 		mknod -m 622 console c 5 1 && \
