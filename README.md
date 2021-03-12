@@ -95,6 +95,16 @@ Make sure to nuke this keyslot once image is provisioned on the device and a new
 usbarmory-mark-two-debian_buster-base_image-YYYYMMDD.img
 ```
 
+## Auto-unlocking LUKS
+There are existing solutions using the Dropbear SSH unlock for the LUKS partition. Having to not embed an key in the system is able to make the drive unrecoverable if lost. For my own use cases, I plan to have the drive auto unlocked but also make sure it will provide similar security.
+
+### DCP-derive
+The LUKS partition password will be embedded in the boot partition, in the zImage. But this key is not the LUKS partitions plaintext key, its encrypted using the device's DCP and the OTPMK. Even when attacker extracted the key from the zImage, they have no way to decrypt it off device since the OTPMK is embedded in the processor and can not be read.
+
+### Secure boot
+When the encrypted key cannot be read by the attacker off device, how do we prevent them from reading it on device. We can't, but we are able to leverage secure boot and make sure the bootloader loading the kernel also the kernel itself + initramfs is not tampered with. This is the main reason why I chose to embed the initramfs inside the zImage, so the bootloader can just verify the zImage.
+
+In conclusion, this method will not prevent attacker to boot your device once they have it in their possession. You will be responsible to hardening the device once its booted, make sure your ports are protected, password is strong and never run untrusted services without confirmation.
 
 ## Installation
 
