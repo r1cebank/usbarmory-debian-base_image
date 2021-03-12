@@ -11,10 +11,21 @@ BUSYBOX_VER=1.33.0
 ARMORYCTL_VER=1.1
 APT_GPG_KEY=CEADE0CF01939B21
 
-# The starting of the boot partition
-BOOT_OFFSET=5242880
+MEGA = 1048576
+# The seperate boot partition is used for LUKS booted rootfs in MB
+BOOT_PARTITION_START_MEGS=5
+BOOT_PARTITION_SIZE_MEGS=128
+BOOT_PARTITION_END_MEGS=$(shell echo $$(( $(BOOT_PARTITION_START_MEGS) + $(BOOT_PARTITION_SIZE_MEGS) )) )
+# The start of the partition
+ROOT_PARTITION_OFFSET=$(shell echo $$(( ($(BOOT_PARTITION_SIZE_MEGS) + $(BOOT_PARTITION_START_MEGS)) * $(MEGA) )))
+# The starting of the boot partition, in multiples of 1048576 (1MB)
+BOOT_PARTITION_OFFSET=$(shell echo $$(( $(BOOT_PARTITION_START_MEGS) * $(MEGA) )) )
+# armory-boot only option
 BOOT_CONSOLE=on
+# armory-boot or u-boot (secure-boot only supports armory-boot)
 BOOTLOADER=armory-boot
+
+IMAGE_SIZE=3500
 
 ARMORY_BOOT_REPO=https://github.com/r1cebank/armory-boot
 USBARMORY_REPO=https://raw.githubusercontent.com/r1cebank/usbarmory/master
@@ -77,15 +88,56 @@ DEBIAN_DEPS := check_version
 DEBIAN_DEPS += armoryctl_${ARMORYCTL_VER}_armhf.deb
 DEBIAN_DEPS += linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 DEBIAN_DEPS += linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
-usbarmory-${IMG_VERSION}.raw: $(DEBIAN_DEPS)
-	truncate -s 3500MiB usbarmory-${IMG_VERSION}.raw
-	sudo /sbin/parted usbarmory-${IMG_VERSION}.raw --script mklabel msdos
-	sudo /sbin/parted usbarmory-${IMG_VERSION}.raw --script mkpart primary ext4 5M 100%
-	sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.raw -o 5242880 --sizelimit 3500MiB
+usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
+	truncate -s ${IMAGE_SIZE}MiB usbarmory-${IMG_VERSION}.img
+	# setup partition type
+	sudo /sbin/parted usbarmory-${IMG_VERSION}.img --script mklabel msdos
+	# setup boot partition
+	sudo /sbin/parted usbarmory-${IMG_VERSION}.img --script mkpart primary ext4 ${BOOT_PARTITION_START_MEGS}MiB ${BOOT_PARTITION_END_MEGS}MiB
+	# setup rootfs pattition
+	sudo /sbin/parted usbarmory-${IMG_VERSION}.img --script mkpart primary ext4 ${BOOT_PARTITION_END_MEGS}MiB 100%
+	sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${BOOT_PARTITION_OFFSET} --sizelimit ${BOOT_PARTITION_SIZE_MEGS}MiB
 	sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV)
 	sudo /sbin/losetup -d $(LOSETUP_DEV)
+	sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${ROOT_PARTITION_OFFSET} --sizelimit ${IMAGE_SIZE}MiB
+	sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV)
+	sudo /sbin/losetup -d $(LOSETUP_DEV)
+	# Mount bootfs
+	mkdir -p bootfs
+	sudo mount -o loop,offset=${BOOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img bootfs/
+	sudo mkdir -p bootfs/boot
+	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb
+	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory
+	sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory
+	sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory
+	@if test "${BOOTLOADER}" = "armory-boot"; then \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r armory-boot.conf.tmpl bootfs/boot/armory-boot.conf; \
+		cat bootfs/boot/armory-boot.conf | \
+		sed -e 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/'  | \
+		sed -e 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' | \
+		sed -e 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' | \
+		sed -e 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' > bootfs/boot/armory-boot.conf; \
+		cd bootfs; \
+			ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
+			ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
+			ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb; \
+	else \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/boot/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/boot/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/.config bootfs/boot/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/System.map bootfs/boot/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		cd bootfs/boot ; ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
+		cd bootfs/boot ; ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
+		cd bootfs/boot ; ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb; \
+	fi
+	sudo umount bootfs
+	# Mount rootfs
 	mkdir -p rootfs
-	sudo mount -o loop,offset=5242880 -t ext4 usbarmory-${IMG_VERSION}.raw rootfs/
+	sudo mount -o loop,offset=${ROOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img rootfs/
 	sudo update-binfmts --enable qemu-arm
 	sudo qemu-debootstrap \
 		--include=ssh,sudo,ntpdate,fake-hwclock,openssl,vim,nano,cryptsetup,lvm2,locales,less,cpufrequtils,isc-dhcp-server,haveged,rng-tools,whois,iw,wpasupplicant,dbus,apt-transport-https,dirmngr,ca-certificates,u-boot-tools,mmc-utils,gnupg,libpam-systemd \
@@ -96,6 +148,11 @@ usbarmory-${IMG_VERSION}.raw: $(DEBIAN_DEPS)
 	sudo install -m 644 -o root -g root conf/usbarmory.conf rootfs/etc/modprobe.d/usbarmory.conf
 	sudo sed -i -e 's/INTERFACESv4=""/INTERFACESv4="usb0"/' rootfs/etc/default/isc-dhcp-server
 	echo "tmpfs /tmp tmpfs defaults 0 0" | sudo tee rootfs/etc/fstab
+	@if test "${BOOT}" = "uSD"; then \
+		echo "/dev/mmcblk0p0 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
+	else \
+		echo "/dev/mmcblk1p0 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
+	fi
 	echo -e "\nUseDNS no" | sudo tee -a rootfs/etc/ssh/sshd_config
 	echo "nameserver 8.8.8.8" | sudo tee rootfs/etc/resolv.conf
 	sudo chroot rootfs systemctl mask getty-static.service
@@ -146,13 +203,13 @@ endif
 ifeq ($(BOOTLOADER),u-boot)
 IMAGE_DEPS += u-boot-${UBOOT_VER}/u-boot.bin
 endif
-usbarmory-${IMG_VERSION}.raw.xz: usbarmory-${IMG_VERSION}.raw $(IMAGE_DEPS)
+usbarmory-${IMG_VERSION}.img.xz: usbarmory-${IMG_VERSION}.img $(IMAGE_DEPS)
 	@if test "${BOOTLOADER}" = "armory-boot"; then \
-		sudo dd if=armory-boot-master/armory-boot.imx of=usbarmory-${IMG_VERSION}.raw bs=512 seek=2 conv=fsync conv=notrunc; \
+		sudo dd if=armory-boot-master/armory-boot.imx of=usbarmory-${IMG_VERSION}.img bs=512 seek=2 conv=fsync conv=notrunc; \
 	else \
-		sudo dd if=u-boot-${UBOOT_VER}/u-boot-dtb.imx of=usbarmory-${IMG_VERSION}.raw bs=512 seek=2 conv=fsync conv=notrunc; \
+		sudo dd if=u-boot-${UBOOT_VER}/u-boot-dtb.imx of=usbarmory-${IMG_VERSION}.img bs=512 seek=2 conv=fsync conv=notrunc; \
 	fi
-	xz -k usbarmory-${IMG_VERSION}.raw
+	xz -k usbarmory-${IMG_VERSION}.img
 
 #### busybox ####
 busybox-${BUSYBOX_VER}.tar.bz2:
@@ -169,19 +226,19 @@ busybox-bin-${BUSYBOX_VER}: busybox-${BUSYBOX_VER}.tar.bz2
 
 #### initramfs ####
 initramfs: busybox-bin-${BUSYBOX_VER}
-	mkdir -pv initramfs/{bin,dev,sbin,etc,run,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,lib64,mnt/root,root}
+	mkdir -pv initramfs/{bin,dev,sbin,etc,run,boot,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,mnt/root,root}
 	cp -av busybox-${BUSYBOX_VER}/_install/* initramfs
 	cp init initramfs
 	chmod +x initramfs/init
 	mkdir -p initramfs/dev
-	cp prebuilt/dcp_derive initramfs/usr/sbin
+	cp prebuilt/${LINUX_VER}/dcp_derive initramfs/usr/sbin
 	chmod +x initramfs/usr/sbin/dcp_derive
 	mkdir -p initramfs/lib/modules/${LINUX_VER}-0
-	cp prebuilt/*.ko initramfs/lib/modules/${LINUX_VER}-0
+	cp prebuilt/${LINUX_VER}/*.ko initramfs/lib/modules/${LINUX_VER}-0
 	cd initramfs/dev && \
 		mknod -m 622 console c 5 1 && \
 		mknod -m 622 tty0 c 4 0
-	cp -av prebuilt/cryptsetup/* initramfs
+	cp -av prebuilt/${LINUX_VER}/cryptsetup/* initramfs
 
 #### linux ####
 
@@ -256,28 +313,13 @@ linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.
 		sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' \
 		linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control; \
 	fi
-	cp -r linux-${LINUX_VER}/arch/arm/boot/zImage linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory
-	cp -r linux-${LINUX_VER}/.config linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/config-${LINUX_VER}${LOCALVERSION}-usbarmory
-	cp -r linux-${LINUX_VER}/System.map linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory
 	cd linux-${LINUX_VER} && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm modules_install
-	cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb
 	@if test "${IMX}" = "imx6ulz"; then \
 		cd mxs-dcp-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
 	@if test "${IMX}" = "imx6ul"; then \
 		cd caam-keyblob-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
-	@if test "${BOOTLOADER}" = "armory-boot"; then \
-		cp -r armory-boot.conf.tmpl linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/armory-boot.conf; \
-		cat linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/armory-boot.conf | \
-		sed -e 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/'  | \
-		sed -e 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' | \
-		sed -e 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' | \
-		sed -e 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' > linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot/armory-boot.conf; \
-	fi
-	cd linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot ; ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage
-	cd linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot ; ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb
-	cd linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/boot ; ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb
 	rm linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/{build,source}
 	chmod 755 linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
 	fakeroot dpkg-deb -b linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
@@ -331,8 +373,8 @@ armoryctl_${ARMORYCTL_VER}_armhf.deb: armoryctl-${ARMORYCTL_VER}/armoryctl
 .PHONY: mxs-dcp mxc-scc2 caam-keyblob armoryctl armoryctl-deb busybox
 
 u-boot: u-boot-${UBOOT_VER}/u-boot.bin
-debian: usbarmory-${IMG_VERSION}.raw
-debian-xz: usbarmory-${IMG_VERSION}.raw.xz
+debian: usbarmory-${IMG_VERSION}.img
+debian-xz: usbarmory-${IMG_VERSION}.img.xz
 linux: linux-${LINUX_VER}/arch/arm/boot/zImage
 linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
 linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
@@ -344,12 +386,14 @@ armoryctl: armoryctl-${ARMORYCTL_VER}/armoryctl
 armoryctl-deb: armoryctl_${ARMORYCTL_VER}_armhf.deb
 armory-boot: armory-boot.imx
 
-release: check_version usbarmory-${IMG_VERSION}.raw.xz
-	sha256sum usbarmory-${IMG_VERSION}.raw.xz > usbarmory-${IMG_VERSION}.raw.xz.sha256
+release: check_version usbarmory-${IMG_VERSION}.img.xz
+	sha256sum usbarmory-${IMG_VERSION}.img.xz > usbarmory-${IMG_VERSION}.img.xz.sha256
 
 clean:
 	-rm -fr armoryctl* linux-* linux-image-* linux-headers-* u-boot-* busybox-* initramfs cryptsetup
 	-rm -fr mxc-scc2-master* mxs-dcp-master* caam-keyblob-master* armory-boot-master*
 	-rm -f usbarmory-*
 	-sudo umount -f rootfs
+	-sudo umount -f bootfs
+	-rmdir bootfs
 	-rmdir rootfs
