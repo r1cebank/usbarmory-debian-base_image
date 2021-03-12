@@ -1,7 +1,6 @@
 SHELL = /bin/bash
 JOBS=2
 
-# LINUX_VER=5.10.22
 LINUX_VER=5.4.87
 LINUX_VER_MAJOR=${shell echo ${LINUX_VER} | cut -d '.' -f1,2}
 KBUILD_BUILD_USER=r1cebank
