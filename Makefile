@@ -1,12 +1,13 @@
 SHELL = /bin/bash
 JOBS=2
 
-LINUX_VER=5.4.87
+LINUX_VER=5.10.22
+# LINUX_VER=5.4.87
 LINUX_VER_MAJOR=${shell echo ${LINUX_VER} | cut -d '.' -f1,2}
 KBUILD_BUILD_USER=r1cebank
 KBUILD_BUILD_HOST=diva-eng
 LOCALVERSION=-0
-UBOOT_VER=2020.10
+UBOOT_VER=2021.01
 BUSYBOX_VER=1.33.0
 ARMORYCTL_VER=1.1
 APT_GPG_KEY=CEADE0CF01939B21
@@ -33,12 +34,11 @@ ARMORYCTL_REPO=https://github.com/f-secure-foundry/armoryctl
 MXC_SCC2_REPO=https://github.com/f-secure-foundry/mxc-scc2
 MXS_DCP_REPO=https://github.com/f-secure-foundry/mxs-dcp
 CAAM_KEYBLOB_REPO=https://github.com/f-secure-foundry/caam-keyblob
-IMG_VERSION=${V}-${BOOT_PARSED}-debian_buster-base_image-$(shell /bin/date -u "+%Y%m%d")
+IMG_VERSION=${BOOT_PARSED}-debian_buster-base_image-$(shell /bin/date -u "+%Y%m%d")
 LOSETUP_DEV=$(shell /sbin/losetup -f)
 
 .DEFAULT_GOAL := release
 
-V ?= mark-two
 BOOT ?= uSD
 BOOT_PARSED=$(shell echo "${BOOT}" | tr '[:upper:]' '[:lower:]')
 
@@ -50,7 +50,7 @@ check_version:
 			echo "invalid target, mark-two IMX options are: imx6ul, imx6ulz"; \
 			exit 1; \
 	fi
-	@echo "target: USB armory V=${V} IMX=${IMX} BOOT=${BOOT}"
+	@echo "target: USB armory IMX=${IMX} BOOT=${BOOT}"
 
 #### armory-boot ####
 armory-boot-master.zip:
@@ -86,8 +86,8 @@ u-boot-${UBOOT_VER}/u-boot.bin: check_version u-boot-${UBOOT_VER}.tar.bz2
 
 DEBIAN_DEPS := check_version
 DEBIAN_DEPS += armoryctl_${ARMORYCTL_VER}_armhf.deb
-DEBIAN_DEPS += linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
-DEBIAN_DEPS += linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
+DEBIAN_DEPS += linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
+DEBIAN_DEPS += linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	truncate -s ${IMAGE_SIZE}MiB usbarmory-${IMG_VERSION}.img
 	# setup partition type
@@ -158,9 +158,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo chroot rootfs systemctl mask getty-static.service
 	sudo chroot rootfs systemctl mask display-manager.service
 	sudo chroot rootfs systemctl mask hwclock-save.service
-	@if test "${V}" = "mark-two"; then \
-		sudo chroot rootfs systemctl mask haveged.service; \
-	fi
+	sudo chroot rootfs systemctl mask haveged.service
 	sudo wget https://f-secure-foundry.github.io/keys/gpg-andrej.asc -O rootfs/tmp/gpg-andrej.asc
 	sudo wget https://f-secure-foundry.github.io/keys/gpg-andrea.asc -O rootfs/tmp/gpg-andrea.asc
 	sudo chroot rootfs apt-key add /tmp/gpg-andrej.asc
@@ -176,11 +174,11 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 # the hash matches password 'usbarmory'
 	sudo chroot rootfs /usr/sbin/useradd -s /bin/bash -p '$$6$$bE13Mtqs3F$$VvaDyPBE6o/Ey0sbyIh5/8tbxBuSiRlLr5rai5M7C70S22HDwBvtu2XOFsvmgRMu.tPdyY6ZcjRrbraF.dWL51' -m usbarmory
 	sudo rm rootfs/etc/ssh/ssh_host_*
-	sudo cp linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
-	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
-	sudo cp linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
-	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
-	sudo rm rootfs/tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
+	sudo cp linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
+	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+	sudo cp linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
+	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+	sudo rm rootfs/tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 	sudo cp armoryctl_${ARMORYCTL_VER}_armhf.deb rootfs/tmp/
 	sudo chroot rootfs /usr/bin/dpkg -i /tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
 	sudo rm rootfs/tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
@@ -252,10 +250,8 @@ linux-${LINUX_VER}/arch/arm/boot/zImage: check_version initramfs linux-${LINUX_V
 		gpg --verify linux-${LINUX_VER}.tar.sign; \
 		tar xfm linux-${LINUX_VER}.tar && cd linux-${LINUX_VER}; \
 	fi
-	wget ${USBARMORY_REPO}/software/kernel_conf/${V}/usbarmory_linux-${LINUX_VER_MAJOR}.config -O linux-${LINUX_VER}/.config
-	if test "${V}" = "mark-two"; then \
-		wget ${USBARMORY_REPO}/software/kernel_conf/${V}/${IMX}-usbarmory.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dts; \
-	fi
+	wget ${USBARMORY_REPO}/software/kernel_conf/mark-two/usbarmory_linux-${LINUX_VER_MAJOR}.config -O linux-${LINUX_VER}/.config
+	wget ${USBARMORY_REPO}/software/kernel_conf/mark-two/${IMX}-usbarmory.dts -O linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dts
 	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="\/opt\/armory\/initramfs"/g' linux-${LINUX_VER}/.config
 	cd linux-${LINUX_VER} && \
 		KBUILD_BUILD_USER=${KBUILD_BUILD_USER} \
@@ -302,48 +298,42 @@ caam-keyblob-master/caam-keyblob.ko: caam-keyblob-master linux-${LINUX_VER}/arch
 KERNEL_DEPS := check_version
 KERNEL_DEPS += linux-${LINUX_VER}/arch/arm/boot/zImage
 KERNEL_DEPS += mxs-dcp caam-keyblob
-linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb: $(KERNEL_DEPS)
-	mkdir -p linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules}
+linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb: $(KERNEL_DEPS)
+	mkdir -p linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules}
 	cat control_template_linux | \
 		sed -e 's/XXXX/${LINUX_VER_MAJOR}/'          | \
 		sed -e 's/YYYY/${LINUX_VER}${LOCALVERSION}/' | \
-		sed -e 's/USB armory/USB armory ${V}/' \
-		> linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
-	@if test "${V}" = "mark-two"; then \
-		sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' \
-		linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control; \
-	fi
-	cd linux-${LINUX_VER} && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm modules_install
+		sed -e 's/USB armory/USB armory mark-two/' \
+		> linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
+	sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
+	cd linux-${LINUX_VER} && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm modules_install
 	@if test "${IMX}" = "imx6ulz"; then \
-		cd mxs-dcp-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
+		cd mxs-dcp-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
 	@if test "${IMX}" = "imx6ul"; then \
-		cd caam-keyblob-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
+		cd caam-keyblob-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
-	rm linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/{build,source}
-	chmod 755 linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
-	fakeroot dpkg-deb -b linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
+	rm linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/{build,source}
+	chmod 755 linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
+	fakeroot dpkg-deb -b linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
 
 #### linux-headers-deb ####
 
 HEADER_DEPS := check_version
 HEADER_DEPS += linux-${LINUX_VER}/arch/arm/boot/zImage
-linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb: $(HEADER_DEPS)
-	mkdir -p linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules/${LINUX_VER}${LOCALVERSION}/build}
-	cd linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION} ; ln -sf build source
+linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb: $(HEADER_DEPS)
+	mkdir -p linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules/${LINUX_VER}${LOCALVERSION}/build}
+	cd linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION} ; ln -sf build source
 	cat control_template_linux-headers | \
 		sed -e 's/XXXX/${LINUX_VER_MAJOR}/'          | \
 		sed -e 's/YYYY/${LINUX_VER}${LOCALVERSION}/' | \
 		sed -e 's/ZZZZ/linux-image-${LINUX_VER_MAJOR}-usbarmory (=${LINUX_VER}${LOCALVERSION})/' | \
-		sed -e 's/USB armory/USB armory ${V}/' \
-		> linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
-	@if test "${V}" = "mark-two"; then \
-		sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' \
-		linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control; \
-	fi
-	cd linux-${LINUX_VER} && make INSTALL_HDR_PATH=../linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/build ARCH=arm headers_install
-	chmod 755 linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
-	fakeroot dpkg-deb -b linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
+		sed -e 's/USB armory/USB armory mark-two/' \
+		> linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
+	sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
+	cd linux-${LINUX_VER} && make INSTALL_HDR_PATH=../linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/build ARCH=arm headers_install
+	chmod 755 linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
+	fakeroot dpkg-deb -b linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
 
 #### armoryctl ####
 
@@ -376,8 +366,8 @@ u-boot: u-boot-${UBOOT_VER}/u-boot.bin
 debian: usbarmory-${IMG_VERSION}.img
 debian-xz: usbarmory-${IMG_VERSION}.img.xz
 linux: linux-${LINUX_VER}/arch/arm/boot/zImage
-linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
-linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-${V}_${LINUX_VER}${LOCALVERSION}_armhf.deb
+linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
 mxs-dcp: mxs-dcp-master/mxs-dcp.ko
 busybox: busybox-bin-${BUSYBOX_VER}
 mxc-scc2: mxc-scc2-master/mxc-scc2.ko
