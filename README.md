@@ -68,13 +68,32 @@ make IMX=imx6ulz BOOT=uSD
 
 # For the USB armory Mk II (internal eMMC)
 make IMX=imx6ulz BOOT=eMMC
+```
 
-
-The following output files are produced:
+## Building with LUKS encrypted rootfs
+Launch the following command to download and build the image:
 
 ```
-# For the USB armory Mk II
+# For the USB armory Mk II (external microSD)
+make IMX=imx6ulz BOOT=uSD LUKS=on
+
+# For the USB armory Mk II (internal eMMC)
+make IMX=imx6ulz BOOT=eMMC LUKS=on
+```
+
+The makefile will generate an random password using `openssl` and print it in the console. Look for the following text:
+
+```
+Creating luks partition with password: 8bf047879bf32a47676958d1307510ff5ae7f651
+```
+
+Make sure to nuke this keyslot once image is provisioned on the device and a new password is installed.
+
+### The following output files are produced:
+
+```
 usbarmory-mark-two-debian_buster-base_image-YYYYMMDD.img
+```
 
 
 ## Installation

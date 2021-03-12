@@ -13,6 +13,7 @@ ARMORYCTL_VER=1.1
 APT_GPG_KEY=CEADE0CF01939B21
 
 MEGA = 1048576
+SECTOR_SIZE = 512
 # The seperate boot partition is used for LUKS booted rootfs in MB
 BOOT_PARTITION_START_MEGS=5
 BOOT_PARTITION_SIZE_MEGS=128
@@ -36,9 +37,14 @@ MXS_DCP_REPO=https://github.com/f-secure-foundry/mxs-dcp
 CAAM_KEYBLOB_REPO=https://github.com/f-secure-foundry/caam-keyblob
 IMG_VERSION=${BOOT_PARSED}-debian_buster-base_image-$(shell /bin/date -u "+%Y%m%d")
 LOSETUP_DEV=$(shell /sbin/losetup -f)
+LOOP_DEV=$(shell /usr/bin/basename $(LOSETUP_DEV))
 
 .DEFAULT_GOAL := release
 
+LUKS=off
+ROOTFS_MAPPER_NAME=rootfs
+RANDOM_PASSWORD=$(shell /usr/bin/openssl rand -hex 20)
+GENERATE_PASSWORD=$(eval LUKS_PASSWORD=$(RANDOM_PASSWORD))
 BOOT ?= uSD
 BOOT_PARSED=$(shell echo "${BOOT}" | tr '[:upper:]' '[:lower:]')
 
@@ -49,6 +55,10 @@ check_version:
 		elif test "${IMX}" != "imx6ul" && test "${IMX}" != "imx6ulz"; then \
 			echo "invalid target, mark-two IMX options are: imx6ul, imx6ulz"; \
 			exit 1; \
+	fi
+	@ if test "${LUKS}" != "off" && test "${LUKS}" != "on"; then \
+		echo "invalid luks setting, options are: on, off"; \
+		exit 1; \
 	fi
 	@echo "target: USB armory IMX=${IMX} BOOT=${BOOT}"
 
@@ -94,14 +104,32 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo /sbin/parted usbarmory-${IMG_VERSION}.img --script mklabel msdos
 	# setup boot partition
 	sudo /sbin/parted usbarmory-${IMG_VERSION}.img --script mkpart primary ext4 ${BOOT_PARTITION_START_MEGS}MiB ${BOOT_PARTITION_END_MEGS}MiB
-	# setup rootfs pattition
+	# setup rootfs partition in image
 	sudo /sbin/parted usbarmory-${IMG_VERSION}.img --script mkpart primary ext4 ${BOOT_PARTITION_END_MEGS}MiB 100%
 	sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${BOOT_PARTITION_OFFSET} --sizelimit ${BOOT_PARTITION_SIZE_MEGS}MiB
 	sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV)
 	sudo /sbin/losetup -d $(LOSETUP_DEV)
-	sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${ROOT_PARTITION_OFFSET} --sizelimit ${IMAGE_SIZE}MiB
-	sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV)
-	sudo /sbin/losetup -d $(LOSETUP_DEV)
+	# make filesystem on the rootfs, luks or ext4
+	$(GENERATE_PASSWORD)
+	@if test "${LUKS}" = "off"; then \
+		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${ROOT_PARTITION_OFFSET} --sizelimit ${IMAGE_SIZE}MiB; \
+		sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV); \
+		sudo /sbin/losetup -d $(LOSETUP_DEV); \
+	else \
+		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${ROOT_PARTITION_OFFSET} --sizelimit ${IMAGE_SIZE}MiB; \
+		sudo /sbin/losetup -d $(LOSETUP_DEV); \
+		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img; \
+		sudo /usr/sbin/kpartx -a $(LOSETUP_DEV); \
+		echo -e "Creating luks partition with password: ${LUKS_PASSWORD}"; \
+		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --key-size 256 --hash sha1 luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
+		printf ${LUKS_PASSWORD} | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
+		sudo /sbin/mkfs.ext4 -F /dev/mapper/${ROOTFS_MAPPER_NAME}; \
+		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
+		sudo /usr/sbin/kpartx -d $(LOSETUP_DEV); \
+		sudo /sbin/losetup -d $(LOSETUP_DEV); \
+	fi
+	echo "done"
+	exit 1
 	# Mount bootfs
 	mkdir -p bootfs
 	sudo mount -o loop,offset=${BOOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img bootfs/
@@ -136,7 +164,14 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo umount bootfs
 	# Mount rootfs
 	mkdir -p rootfs
-	sudo mount -o loop,offset=${ROOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img rootfs/
+	@if test "${LUKS}" = "off"; then \
+		sudo mount -o loop,offset=${ROOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img rootfs/; \
+	else \
+		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img; \
+		sudo /usr/sbin/kpartx -a $(LOSETUP_DEV); \
+		printf ${LUKS_PASSWORD} | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
+		sudo mount /dev/mapper/${ROOTFS_MAPPER_NAME} rootfs/; \
+	fi
 	sudo update-binfmts --enable qemu-arm
 	sudo qemu-debootstrap \
 		--include=ssh,sudo,ntpdate,fake-hwclock,openssl,vim,nano,cryptsetup,lvm2,locales,less,cpufrequtils,isc-dhcp-server,haveged,rng-tools,whois,iw,wpasupplicant,dbus,apt-transport-https,dirmngr,ca-certificates,u-boot-tools,mmc-utils,gnupg,libpam-systemd \
@@ -190,6 +225,12 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo chroot rootfs fake-hwclock
 	sudo rm rootfs/usr/bin/qemu-arm-static
 	sudo umount rootfs
+	# clean-up luks
+	@if test "${LUKS}" = "on"; then \
+		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
+		sudo /usr/sbin/kpartx -d $(LOSETUP_DEV); \
+		sudo /sbin/losetup -d $(LOSETUP_DEV); \
+	fi
 
 #### debian-xz ####
 
