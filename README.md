@@ -4,6 +4,7 @@ The Makefile in this repository is based on the [official usbarmory debian image
 
 ## Differences
 * Able to customize bootloader (u-boot, armory-boot)
+* Build image to use for secure boot (only with armory-boot)
 * Able to customize boot partition size
 * Separate `/boot` partition to enable LUKS encrypted root
 * Initramfs with modules to setup LUKS encrypted root

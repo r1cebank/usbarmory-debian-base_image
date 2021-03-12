@@ -59,7 +59,7 @@ armory-boot-master.zip:
 armory-boot-master: armory-boot-master.zip
 	unzip -o armory-boot-master.zip
 armory-boot.imx: armory-boot-master
-	cd armory-boot-master && make BUILD_USER=${KBUILD_BUILD_USER} BUILD_HOST=${KBUILD_BUILD_HOST} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx BOOT=${BOOT} CONSOLE=${BOOT_CONSOLE} START=${BOOT_OFFSET}
+	cd armory-boot-master && make BUILD_USER=${KBUILD_BUILD_USER} BUILD_HOST=${KBUILD_BUILD_HOST} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx BOOT=${BOOT} CONSOLE=${BOOT_CONSOLE} START=${BOOT_PARTITION_OFFSET}
 
 #### u-boot ####
 
@@ -116,11 +116,10 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 		sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
 		sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
 		sudo cp -r armory-boot.conf.tmpl bootfs/boot/armory-boot.conf; \
-		cat bootfs/boot/armory-boot.conf | \
-		sed -e 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/'  | \
-		sed -e 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' | \
-		sed -e 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' | \
-		sed -e 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' > bootfs/boot/armory-boot.conf; \
+		sed -i 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
+		sed -i 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
+		sed -i 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' bootfs/boot/armory-boot.conf; \
+		sed -i 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' bootfs/boot/armory-boot.conf; \
 		cd bootfs; \
 			ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
 			ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
@@ -175,9 +174,9 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo chroot rootfs /usr/sbin/useradd -s /bin/bash -p '$$6$$bE13Mtqs3F$$VvaDyPBE6o/Ey0sbyIh5/8tbxBuSiRlLr5rai5M7C70S22HDwBvtu2XOFsvmgRMu.tPdyY6ZcjRrbraF.dWL51' -m usbarmory
 	sudo rm rootfs/etc/ssh/ssh_host_*
 	sudo cp linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
-	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 	sudo cp linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb rootfs/tmp/
-	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+	sudo chroot rootfs /usr/bin/dpkg -i /tmp/linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 	sudo rm rootfs/tmp/linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 	sudo cp armoryctl_${ARMORYCTL_VER}_armhf.deb rootfs/tmp/
 	sudo chroot rootfs /usr/bin/dpkg -i /tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
@@ -306,34 +305,34 @@ linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb: 
 		sed -e 's/USB armory/USB armory mark-two/' \
 		> linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
 	sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
-	cd linux-${LINUX_VER} && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm modules_install
+	cd linux-${LINUX_VER} && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm modules_install
 	@if test "${IMX}" = "imx6ulz"; then \
-		cd mxs-dcp-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
+		cd mxs-dcp-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
 	@if test "${IMX}" = "imx6ul"; then \
-		cd caam-keyblob-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
+		cd caam-keyblob-master && make INSTALL_MOD_PATH=../linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf ARCH=arm KERNEL_SRC=../linux-${LINUX_VER} modules_install; \
 	fi
-	rm linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/{build,source}
-	chmod 755 linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
-	fakeroot dpkg-deb -b linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+	rm linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/{build,source}
+	chmod 755 linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
+	fakeroot dpkg-deb -b linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 
 #### linux-headers-deb ####
 
 HEADER_DEPS := check_version
 HEADER_DEPS += linux-${LINUX_VER}/arch/arm/boot/zImage
-linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb: $(HEADER_DEPS)
-	mkdir -p linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules/${LINUX_VER}${LOCALVERSION}/build}
-	cd linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION} ; ln -sf build source
+linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb: $(HEADER_DEPS)
+	mkdir -p linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules/${LINUX_VER}${LOCALVERSION}/build}
+	cd linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION} ; ln -sf build source
 	cat control_template_linux-headers | \
 		sed -e 's/XXXX/${LINUX_VER_MAJOR}/'          | \
 		sed -e 's/YYYY/${LINUX_VER}${LOCALVERSION}/' | \
 		sed -e 's/ZZZZ/linux-image-${LINUX_VER_MAJOR}-usbarmory (=${LINUX_VER}${LOCALVERSION})/' | \
 		sed -e 's/USB armory/USB armory mark-two/' \
-		> linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
-	sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
-	cd linux-${LINUX_VER} && make INSTALL_HDR_PATH=../linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/build ARCH=arm headers_install
-	chmod 755 linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
-	fakeroot dpkg-deb -b linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+		> linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
+	sed -i -e 's/${LINUX_VER_MAJOR}-usbarmory/${LINUX_VER_MAJOR}-usbarmory-mark-two/' linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN/control
+	cd linux-${LINUX_VER} && make INSTALL_HDR_PATH=../linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/lib/modules/${LINUX_VER}${LOCALVERSION}/build ARCH=arm headers_install
+	chmod 755 linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/DEBIAN
+	fakeroot dpkg-deb -b linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 
 #### armoryctl ####
 
@@ -366,8 +365,8 @@ u-boot: u-boot-${UBOOT_VER}/u-boot.bin
 debian: usbarmory-${IMG_VERSION}.img
 debian-xz: usbarmory-${IMG_VERSION}.img.xz
 linux: linux-${LINUX_VER}/arch/arm/boot/zImage
-linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
-linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-$${LINUX_VER}${LOCALVERSION}_armhf.deb
+linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
+linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 mxs-dcp: mxs-dcp-master/mxs-dcp.ko
 busybox: busybox-bin-${BUSYBOX_VER}
 mxc-scc2: mxc-scc2-master/mxc-scc2.ko
