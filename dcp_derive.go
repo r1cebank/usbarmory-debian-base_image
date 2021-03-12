@@ -108,7 +108,7 @@ func main() {
 	switch op {
 	case "enc":
 		result := encrypt(inputString, diversifier)
-		fmt.Printf("%s", result)
+		fmt.Printf("\n%s\n", result)
 	case "dec":
 		result := decrypt(inputString, diversifier)
 		fmt.Printf("%s", result)
@@ -149,8 +149,6 @@ func decrypt(inputString string, diversifier []byte) (result string) {
 
 // equivalent to PKCS#11 C_DeriveKey with CKM_AES_CBC_ENCRYPT_DATA
 func DCPDeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
-	log.Printf("dcp_tool: deriving key, diversifier %x", diversifier)
-
 	fd, err := unix.Socket(unix.AF_ALG, unix.SOCK_SEQPACKET, 0)
 
 	if err != nil {
@@ -303,3 +301,4 @@ func buildCmsg(mode uint32, iv []byte) []byte {
 func CMSG_DATA(cmsg *syscall.Cmsghdr) unsafe.Pointer {
 	return unsafe.Pointer(uintptr(unsafe.Pointer(cmsg)) + uintptr(syscall.SizeofCmsghdr))
 }
+

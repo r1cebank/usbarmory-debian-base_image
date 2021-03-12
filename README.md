@@ -1,9 +1,20 @@
-# USB armory Debian base image [![Build Status](https://github.com/f-secure-foundry/usbarmory-debian-base_image/workflows/Build-All/badge.svg)](https://github.com/f-secure-foundry/usbarmory-debian-base_image/actions)
+# USB armory Debian base image
 
-The Makefile in this repository allows generation of a basic Debian
-installation for the [USB armory](https://github.com/f-secure-foundry/usbarmory).
+The Makefile in this repository is based on the [official usbarmory debian image repo](https://github.com/f-secure-foundry/usbarmory-debian-base_image)
 
-Pre-compiled releases are [available](https://github.com/f-secure-foundry/usbarmory-debian-base_image/releases).
+## Differences
+* Able to customize bootloader (u-boot, armory-boot)
+* Able to customize boot partition size
+* Separate `/boot` partition to enable LUKS encrypted root
+* Initramfs with modules to setup LUKS encrypted root
+* Pre-encrypted image
+* Targets for update kernel image
+* Customizable init script
+* Build signed image
+* Dropped support for Mark I (I have no device to test on)
+
+## Prebuilt Modules
+We run into chicken and egg situation with embedded modules for initramfs, initramfs is packaged by kernel during build and kernel modules are only built after the kernel is built. So the prebuilt folder will include prebuilt kernel modules so they can be packaged inside the initramfs, if you are unsure about the ones I packaged, replace the modules with ones you built. Make sure all the symlink is working.
 
 ## Pre-requisites
 
@@ -21,6 +32,11 @@ gpg --keyserver hkp://keys.gnupg.net --recv-keys 38DBBDC86092693E
 Import the U-Boot signing GPG key:
 ```
 gpg --keyserver hkp://keys.gnupg.net --recv-keys 147C39FF9634B72C
+```
+
+Import the Busybox signing GPG key:
+```
+gpg --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys C9E9416F76E610DBD09D040F47B70C55ACC9965B
 ```
 
 The `loop` Linux kernel module must be enabled/loaded, also mind that the
@@ -57,7 +73,7 @@ The following output files are produced:
 
 ```
 # For the USB armory Mk II
-usbarmory-mark-two-debian_buster-base_image-YYYYMMDD.raw
+usbarmory-mark-two-debian_buster-base_image-YYYYMMDD.img
 
 
 ## Installation
@@ -71,12 +87,12 @@ correct one. Errors in target specification will result in disk corruption.
 
 Linux (verify target from terminal using `dmesg`):
 ```
-sudo dd if=usbarmory-*-debian_buster-base_image-YYYYMMDD.raw of=/dev/sdX bs=1M conv=fsync
+sudo dd if=usbarmory-*-debian_buster-base_image-YYYYMMDD.img of=/dev/sdX bs=1M conv=fsync
 ```
 
 Mac OS X (verify target from terminal with `diskutil list`):
 ```
-sudo dd if=usbarmory-*-debian_buster-base_image-YYYYMMDD.raw of=/dev/rdiskN bs=1m
+sudo dd if=usbarmory-*-debian_buster-base_image-YYYYMMDD.img of=/dev/rdiskN bs=1m
 ```
 
 On Windows, and other OSes, alternatively the [Etcher](https://etcher.io)
