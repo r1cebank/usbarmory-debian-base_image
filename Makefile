@@ -148,9 +148,9 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo sed -i -e 's/INTERFACESv4=""/INTERFACESv4="usb0"/' rootfs/etc/default/isc-dhcp-server
 	echo "tmpfs /tmp tmpfs defaults 0 0" | sudo tee rootfs/etc/fstab
 	@if test "${BOOT}" = "uSD"; then \
-		echo "/dev/mmcblk0p0 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
+		echo "/dev/mmcblk0p1 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
 	else \
-		echo "/dev/mmcblk1p0 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
+		echo "/dev/mmcblk1p1 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
 	fi
 	echo -e "\nUseDNS no" | sudo tee -a rootfs/etc/ssh/sshd_config
 	echo "nameserver 8.8.8.8" | sudo tee rootfs/etc/resolv.conf
