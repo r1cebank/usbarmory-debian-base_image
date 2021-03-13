@@ -1,0 +1,39 @@
+#!/bin/busybox /bin/sh
+export PATH=/usr/bin:/usr/sbin:/bin:/sbin
+
+# Mount the dev directory
+mount -t devtmpfs none /dev
+
+# Mount the rest of the directory
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t debugfs none /sys/kernel/debug
+mount -n -t tmpfs    tmpfs    /run
+
+echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n" > /dev/kmsg
+
+echo -e "********** Starting custom unlock script **********\n" > /dev/kmsg
+
+echo -e "**********    Loading kernel modules     **********\n" > /dev/kmsg
+echo -e "Loading: dm-crypt\n" > /dev/kmsg
+modprobe dm-crypt
+echo -e "Loading: af_alg\n" > /dev/kmsg
+modprobe af_alg
+echo -e "Loading: algif_hash\n" > /dev/kmsg
+modprobe algif_hash
+echo -e "Loading: algif_skcipher\n" > /dev/kmsg
+modprobe algif_skcipher
+echo -e "Loading: algif_rng\n" > /dev/kmsg
+modprobe algif_rng
+echo -e "Loading: mxs_dcp\n" > /dev/kmsg
+modprobe mxs_dcp
+
+echo -e "**********   Kernel modules loaded       **********\n" > /dev/kmsg
+
+sleep 5
+
+printf {LUKS_KEY} | cryptsetup luksOpen /dev/{ROOTFS_DEV} rootfs -d -
+mount /dev/mapper/rootfs /root
+
+# Switch root
+exec switch_root -c /dev/console /root /sbin/init

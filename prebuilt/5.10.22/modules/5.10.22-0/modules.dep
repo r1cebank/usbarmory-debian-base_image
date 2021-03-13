@@ -1,0 +1,367 @@
+kernel/fs/nfs_common/grace.ko:
+kernel/fs/nfs_common/nfs_ssc.ko:
+kernel/fs/fat/fat.ko:
+kernel/fs/fat/vfat.ko: kernel/fs/fat/fat.ko
+kernel/fs/fat/msdos.ko: kernel/fs/fat/fat.ko
+kernel/fs/ecryptfs/ecryptfs.ko: kernel/security/keys/encrypted-keys/encrypted-keys.ko
+kernel/fs/nfs/nfs.ko: kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko kernel/fs/nfs_common/nfs_ssc.ko
+kernel/fs/nfs/nfsv2.ko: kernel/fs/nfs/nfs.ko kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko kernel/fs/nfs_common/nfs_ssc.ko
+kernel/fs/nfs/nfsv3.ko: kernel/fs/nfs/nfs.ko kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko kernel/fs/nfs_common/nfs_ssc.ko
+kernel/fs/nfsd/nfsd.ko: kernel/fs/lockd/lockd.ko kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko
+kernel/fs/lockd/lockd.ko: kernel/fs/nfs_common/grace.ko kernel/net/sunrpc/sunrpc.ko
+kernel/fs/cifs/cifs.ko: kernel/lib/crypto/libdes.ko kernel/lib/crypto/libarc4.ko
+kernel/fs/jffs2/jffs2.ko: kernel/drivers/mtd/mtd.ko
+kernel/fs/fuse/fuse.ko:
+kernel/security/keys/encrypted-keys/encrypted-keys.ko:
+kernel/crypto/crypto_engine.ko:
+kernel/crypto/seqiv.ko:
+kernel/crypto/echainiv.ko:
+kernel/crypto/crypto_user.ko:
+kernel/crypto/cmac.ko:
+kernel/crypto/hmac.ko:
+kernel/crypto/md4.ko:
+kernel/crypto/sha512_generic.ko:
+kernel/crypto/gf128mul.ko:
+kernel/crypto/ctr.ko:
+kernel/crypto/gcm.ko:
+kernel/crypto/ccm.ko:
+kernel/crypto/des_generic.ko: kernel/lib/crypto/libdes.ko
+kernel/crypto/arc4.ko: kernel/lib/crypto/libarc4.ko
+kernel/crypto/lzo.ko: kernel/lib/lzo/lzo_compress.ko kernel/lib/lzo/lzo_decompress.ko
+kernel/crypto/lzo-rle.ko: kernel/lib/lzo/lzo_compress.ko kernel/lib/lzo/lzo_decompress.ko
+kernel/crypto/ansi_cprng.ko:
+kernel/crypto/drbg.ko:
+kernel/crypto/jitterentropy_rng.ko:
+kernel/crypto/tcrypt.ko:
+kernel/crypto/ghash-generic.ko: kernel/crypto/gf128mul.ko
+kernel/crypto/af_alg.ko:
+kernel/crypto/algif_hash.ko: kernel/crypto/af_alg.ko
+kernel/crypto/algif_skcipher.ko: kernel/crypto/af_alg.ko
+kernel/crypto/algif_rng.ko: kernel/crypto/af_alg.ko
+kernel/lib/crypto/libarc4.ko:
+kernel/lib/crypto/libdes.ko:
+kernel/lib/crc-ccitt.ko:
+kernel/lib/crc-itu-t.ko:
+kernel/lib/lzo/lzo_compress.ko:
+kernel/lib/lzo/lzo_decompress.ko:
+kernel/lib/ts_kmp.ko:
+kernel/lib/ts_bm.ko:
+kernel/lib/ts_fsm.ko:
+kernel/drivers/dma/virt-dma.ko:
+kernel/drivers/dma/imx-sdma.ko: kernel/drivers/base/firmware_loader/firmware_class.ko kernel/drivers/dma/virt-dma.ko
+kernel/drivers/char/hw_random/optee-rng.ko: kernel/drivers/tee/tee.ko
+kernel/drivers/base/firmware_loader/firmware_class.ko:
+kernel/drivers/scsi/scsi_mod.ko:
+kernel/drivers/scsi/sd_mod.ko: kernel/drivers/scsi/scsi_mod.ko
+kernel/drivers/spi/spidev.ko:
+kernel/drivers/spi/spi-bitbang.ko:
+kernel/drivers/spi/spi-imx.ko: kernel/drivers/spi/spi-bitbang.ko
+kernel/drivers/net/wireless/ath/ath9k/ath9k.ko: kernel/drivers/leds/led-class.ko kernel/drivers/net/wireless/ath/ath9k/ath9k_common.ko kernel/drivers/net/wireless/ath/ath9k/ath9k_hw.ko kernel/drivers/net/wireless/ath/ath.ko kernel/net/mac80211/mac80211.ko kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko kernel/lib/crypto/libarc4.ko
+kernel/drivers/net/wireless/ath/ath9k/ath9k_hw.ko: kernel/drivers/net/wireless/ath/ath.ko kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko
+kernel/drivers/net/wireless/ath/ath9k/ath9k_common.ko: kernel/drivers/net/wireless/ath/ath9k/ath9k_hw.ko kernel/drivers/net/wireless/ath/ath.ko kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko
+kernel/drivers/net/wireless/ath/ath9k/ath9k_htc.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko kernel/drivers/leds/led-class.ko kernel/drivers/net/wireless/ath/ath9k/ath9k_common.ko kernel/drivers/net/wireless/ath/ath9k/ath9k_hw.ko kernel/drivers/net/wireless/ath/ath.ko kernel/net/mac80211/mac80211.ko kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko kernel/lib/crypto/libarc4.ko
+kernel/drivers/net/wireless/ath/ath.ko: kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko
+kernel/drivers/net/wireless/rndis_wlan.ko: kernel/drivers/net/usb/rndis_host.ko kernel/drivers/net/usb/cdc_ether.ko kernel/drivers/net/usb/usbnet.ko kernel/drivers/net/mii.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko
+kernel/drivers/net/dummy.ko:
+kernel/drivers/net/mii.ko:
+kernel/drivers/net/tun.ko:
+kernel/drivers/net/veth.ko:
+kernel/drivers/net/vxlan.ko: kernel/net/ipv6/ip6_udp_tunnel.ko kernel/net/ipv4/udp_tunnel.ko
+kernel/drivers/net/ppp/ppp_generic.ko: kernel/drivers/net/slip/slhc.ko
+kernel/drivers/net/ppp/bsd_comp.ko: kernel/drivers/net/ppp/ppp_generic.ko kernel/drivers/net/slip/slhc.ko
+kernel/drivers/net/ppp/ppp_deflate.ko: kernel/drivers/net/ppp/ppp_generic.ko kernel/drivers/net/slip/slhc.ko
+kernel/drivers/net/ppp/ppp_mppe.ko: kernel/drivers/net/ppp/ppp_generic.ko kernel/drivers/net/slip/slhc.ko kernel/lib/crypto/libarc4.ko
+kernel/drivers/net/ppp/pppox.ko: kernel/drivers/net/ppp/ppp_generic.ko kernel/drivers/net/slip/slhc.ko
+kernel/drivers/net/ppp/pppoe.ko: kernel/drivers/net/ppp/pppox.ko kernel/drivers/net/ppp/ppp_generic.ko kernel/drivers/net/slip/slhc.ko
+kernel/drivers/net/slip/slhc.ko:
+kernel/drivers/net/usb/cdc_ether.ko: kernel/drivers/net/usb/usbnet.ko kernel/drivers/net/mii.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/net/usb/rndis_host.ko: kernel/drivers/net/usb/cdc_ether.ko kernel/drivers/net/usb/usbnet.ko kernel/drivers/net/mii.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/net/usb/usbnet.ko: kernel/drivers/net/mii.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/common/usb-common.ko:
+kernel/drivers/usb/common/ulpi.ko:
+kernel/drivers/usb/core/usbcore.ko: kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/mon/usbmon.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/host/ehci-hcd.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/host/ehci-mxc.ko: kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/host/fsl-mph-dr-of.ko:
+kernel/drivers/usb/host/ehci-fsl.ko: kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/storage/usb-storage.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko kernel/drivers/scsi/scsi_mod.ko
+kernel/drivers/usb/chipidea/ci_hdrc.ko: kernel/drivers/usb/common/ulpi.ko kernel/drivers/usb/roles/roles.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/chipidea/ci_hdrc_usb2.ko: kernel/drivers/usb/chipidea/ci_hdrc.ko kernel/drivers/usb/common/ulpi.ko kernel/drivers/usb/roles/roles.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/chipidea/ci_hdrc_msm.ko: kernel/drivers/usb/chipidea/ci_hdrc.ko kernel/drivers/usb/common/ulpi.ko kernel/drivers/usb/roles/roles.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/chipidea/ci_hdrc_imx.ko: kernel/drivers/usb/chipidea/usbmisc_imx.ko kernel/drivers/usb/chipidea/ci_hdrc.ko kernel/drivers/usb/common/ulpi.ko kernel/drivers/usb/roles/roles.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/chipidea/usbmisc_imx.ko:
+kernel/drivers/usb/chipidea/ci_hdrc_tegra.ko: kernel/drivers/usb/chipidea/ci_hdrc.ko kernel/drivers/usb/common/ulpi.ko kernel/drivers/usb/roles/roles.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/host/ehci-hcd.ko kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/libcomposite.ko: kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/udc/udc-core.ko: kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_acm.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/function/u_serial.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_ss_lb.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/u_serial.ko: kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_serial.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/function/u_serial.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_obex.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/function/u_serial.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/u_ether.ko: kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_ncm.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_ecm.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_eem.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_ecm_subset.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_rndis.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_mass_storage.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_fs.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_hid.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/function/usb_f_printer.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_zero.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_ether.ko: kernel/drivers/usb/gadget/function/usb_f_rndis.ko kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/gadgetfs.ko: kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_ffs.ko: kernel/drivers/usb/gadget/function/usb_f_fs.ko kernel/drivers/usb/gadget/function/usb_f_rndis.ko kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_mass_storage.ko: kernel/drivers/usb/gadget/function/usb_f_mass_storage.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_serial.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_printer.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_cdc.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_hid.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_dbgp.ko: kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/function/u_serial.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_multi.ko: kernel/drivers/usb/gadget/function/usb_f_mass_storage.ko kernel/drivers/usb/gadget/function/usb_f_rndis.ko kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_ncm.ko: kernel/drivers/usb/gadget/function/u_ether.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/gadget/legacy/g_acm_ms.ko: kernel/drivers/usb/gadget/function/usb_f_mass_storage.ko kernel/drivers/usb/gadget/libcomposite.ko kernel/drivers/usb/gadget/udc/udc-core.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/usb/roles/roles.ko:
+kernel/drivers/input/mouse/psmouse.ko: kernel/drivers/i2c/i2c-core.ko
+kernel/drivers/input/mouse/sermouse.ko:
+kernel/drivers/input/mouse/synaptics_usb.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/input/touchscreen/usbtouchscreen.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/input/input-leds.ko: kernel/drivers/leds/led-class.ko
+kernel/drivers/input/mousedev.ko:
+kernel/drivers/input/evdev.ko:
+kernel/drivers/i2c/busses/i2c-imx.ko: kernel/drivers/i2c/i2c-core.ko
+kernel/drivers/i2c/i2c-core.ko:
+kernel/drivers/i2c/i2c-dev.ko: kernel/drivers/i2c/i2c-core.ko
+kernel/drivers/md/dm-crypt.ko: kernel/security/keys/encrypted-keys/encrypted-keys.ko
+kernel/drivers/cpufreq/cpufreq-dt.ko:
+kernel/drivers/cpufreq/imx6q-cpufreq.ko:
+kernel/drivers/leds/trigger/ledtrig-timer.ko:
+kernel/drivers/leds/trigger/ledtrig-oneshot.ko:
+kernel/drivers/leds/trigger/ledtrig-heartbeat.ko:
+kernel/drivers/leds/trigger/ledtrig-backlight.ko:
+kernel/drivers/leds/trigger/ledtrig-gpio.ko:
+kernel/drivers/leds/trigger/ledtrig-default-on.ko:
+kernel/drivers/leds/trigger/ledtrig-transient.ko:
+kernel/drivers/leds/led-class.ko:
+kernel/drivers/leds/leds-gpio.ko: kernel/drivers/leds/led-class.ko
+kernel/drivers/crypto/caam/error.ko:
+kernel/drivers/crypto/caam/caam.ko: kernel/drivers/crypto/caam/error.ko
+kernel/drivers/crypto/caam/caam_jr.ko: kernel/drivers/crypto/caam/caam.ko kernel/drivers/crypto/caam/caamhash_desc.ko kernel/drivers/crypto/caam/caamalg_desc.ko kernel/drivers/crypto/caam/error.ko kernel/crypto/crypto_engine.ko kernel/lib/crypto/libdes.ko
+kernel/drivers/crypto/caam/caamalg_desc.ko: kernel/drivers/crypto/caam/error.ko
+kernel/drivers/crypto/caam/caamhash_desc.ko: kernel/drivers/crypto/caam/error.ko
+kernel/drivers/hid/hid-generic.ko:
+kernel/drivers/hid/usbhid/usbhid.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/hid/usbhid/usbkbd.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/hid/usbhid/usbmouse.ko: kernel/drivers/usb/core/usbcore.ko kernel/drivers/usb/common/usb-common.ko
+kernel/drivers/nvmem/nvmem-imx-iim.ko:
+kernel/drivers/nvmem/nvmem-imx-ocotp.ko:
+kernel/drivers/mtd/parsers/ofpart.ko: kernel/drivers/mtd/mtd.ko
+kernel/drivers/mtd/chips/chipreg.ko:
+kernel/drivers/mtd/devices/block2mtd.ko: kernel/drivers/mtd/mtd.ko
+kernel/drivers/mtd/mtd.ko:
+kernel/drivers/mtd/spi-nor/spi-nor.ko: kernel/drivers/mtd/mtd.ko
+kernel/drivers/tee/tee.ko:
+kernel/drivers/tee/optee/optee.ko: kernel/drivers/i2c/i2c-core.ko kernel/drivers/tee/tee.ko
+kernel/net/802/p8022.ko: kernel/net/llc/llc.ko
+kernel/net/802/psnap.ko: kernel/net/llc/llc.ko
+kernel/net/802/stp.ko: kernel/net/llc/llc.ko
+kernel/net/sched/sch_cbq.ko:
+kernel/net/sched/sch_htb.ko:
+kernel/net/sched/sch_hfsc.ko:
+kernel/net/sched/sch_red.ko:
+kernel/net/sched/sch_netem.ko:
+kernel/net/sched/cls_fw.ko:
+kernel/net/sched/cls_cgroup.ko:
+kernel/net/sched/cls_bpf.ko:
+kernel/net/netfilter/nfnetlink.ko:
+kernel/net/netfilter/nfnetlink_acct.ko: kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/nfnetlink_queue.ko: kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/nfnetlink_log.ko: kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/nfnetlink_osf.ko: kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/nf_conntrack.ko: kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_netlink.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/nf_conntrack_ftp.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_h323.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_irc.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_broadcast.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_netbios_ns.ko: kernel/net/netfilter/nf_conntrack_broadcast.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_snmp.ko: kernel/net/netfilter/nf_conntrack_broadcast.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_pptp.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_sane.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_sip.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conntrack_tftp.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_log_common.ko:
+kernel/net/netfilter/nf_nat.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_nat_ftp.ko: kernel/net/netfilter/nf_conntrack_ftp.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_nat_irc.ko: kernel/net/netfilter/nf_conntrack_irc.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_nat_sip.ko: kernel/net/netfilter/nf_conntrack_sip.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_nat_tftp.ko: kernel/net/netfilter/nf_conntrack_tftp.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_synproxy_core.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/nf_conncount.ko: kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/x_tables.ko:
+kernel/net/netfilter/xt_tcpudp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_mark.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_connmark.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_nat.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_AUDIT.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_CHECKSUM.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_CLASSIFY.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_CT.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_DSCP.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_HL.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_HMARK.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_LED.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_LOG.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_NETMAP.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_NFLOG.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_NFQUEUE.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_RATEEST.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_REDIRECT.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_MASQUERADE.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_TPROXY.ko: kernel/net/ipv6/netfilter/nf_tproxy_ipv6.ko kernel/net/ipv6/ipv6.ko kernel/net/ipv4/netfilter/nf_tproxy_ipv4.ko kernel/net/netfilter/x_tables.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_TCPMSS.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_TCPOPTSTRIP.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_TEE.ko: kernel/net/ipv6/netfilter/nf_dup_ipv6.ko kernel/net/ipv4/netfilter/nf_dup_ipv4.ko kernel/net/ipv6/ipv6.ko kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_TRACE.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_IDLETIMER.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_addrtype.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_bpf.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_cluster.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_comment.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_connbytes.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_connlabel.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_connlimit.ko: kernel/net/netfilter/nf_conncount.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_conntrack.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_cpu.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_dccp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_devgroup.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_dscp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_ecn.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_esp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_hashlimit.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_helper.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_hl.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_ipcomp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_iprange.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_l2tp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_length.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_limit.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_mac.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_multiport.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_nfacct.ko: kernel/net/netfilter/nfnetlink_acct.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/xt_osf.ko: kernel/net/netfilter/nfnetlink_osf.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nfnetlink.ko
+kernel/net/netfilter/xt_owner.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_cgroup.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_physdev.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_pkttype.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_policy.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_quota.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_rateest.ko: kernel/net/netfilter/xt_RATEEST.ko kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_realm.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_recent.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_sctp.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_socket.ko: kernel/net/ipv4/netfilter/nf_socket_ipv4.ko kernel/net/ipv6/netfilter/nf_socket_ipv6.ko kernel/net/ipv6/ipv6.ko kernel/net/netfilter/x_tables.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_state.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/netfilter/xt_statistic.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_string.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_tcpmss.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_time.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/netfilter/xt_u32.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko:
+kernel/net/ipv4/netfilter/nf_socket_ipv4.ko:
+kernel/net/ipv4/netfilter/nf_tproxy_ipv4.ko:
+kernel/net/ipv4/netfilter/nf_log_arp.ko: kernel/net/netfilter/nf_log_common.ko
+kernel/net/ipv4/netfilter/nf_log_ipv4.ko: kernel/net/netfilter/nf_log_common.ko
+kernel/net/ipv4/netfilter/nf_reject_ipv4.ko:
+kernel/net/ipv4/netfilter/nf_nat_h323.ko: kernel/net/netfilter/nf_conntrack_h323.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv4/netfilter/nf_nat_pptp.ko: kernel/net/netfilter/nf_conntrack_pptp.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv4/netfilter/nf_nat_snmp_basic.ko: kernel/net/netfilter/nf_conntrack_snmp.ko kernel/net/netfilter/nf_conntrack_broadcast.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv4/netfilter/ip_tables.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/iptable_filter.ko: kernel/net/ipv4/netfilter/ip_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/iptable_mangle.ko: kernel/net/ipv4/netfilter/ip_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/iptable_nat.ko: kernel/net/ipv4/netfilter/ip_tables.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv4/netfilter/iptable_raw.ko: kernel/net/ipv4/netfilter/ip_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/iptable_security.ko: kernel/net/ipv4/netfilter/ip_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/ipt_ah.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/ipt_rpfilter.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/ipt_CLUSTERIP.ko: kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv4/netfilter/ipt_ECN.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/ipt_REJECT.ko: kernel/net/ipv4/netfilter/nf_reject_ipv4.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/ipt_SYNPROXY.ko: kernel/net/netfilter/nf_synproxy_core.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv4/netfilter/arp_tables.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/arpt_mangle.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/arptable_filter.ko: kernel/net/ipv4/netfilter/arp_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv4/netfilter/nf_dup_ipv4.ko:
+kernel/net/ipv4/ip_tunnel.ko:
+kernel/net/ipv4/ipip.ko: kernel/net/ipv4/tunnel4.ko kernel/net/ipv4/ip_tunnel.ko
+kernel/net/ipv4/fou.ko: kernel/net/ipv4/ip_tunnel.ko kernel/net/ipv6/ip6_udp_tunnel.ko kernel/net/ipv4/udp_tunnel.ko
+kernel/net/ipv4/gre.ko:
+kernel/net/ipv4/ip_gre.ko: kernel/net/ipv4/gre.ko kernel/net/ipv4/ip_tunnel.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv4/udp_tunnel.ko:
+kernel/net/ipv4/ip_vti.ko: kernel/net/ipv4/tunnel4.ko kernel/net/ipv4/ip_tunnel.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv4/ah4.ko: kernel/net/xfrm/xfrm_algo.ko
+kernel/net/ipv4/esp4.ko: kernel/net/xfrm/xfrm_algo.ko
+kernel/net/ipv4/ipcomp.ko: kernel/net/xfrm/xfrm_ipcomp.ko kernel/net/xfrm/xfrm_algo.ko
+kernel/net/ipv4/xfrm4_tunnel.ko: kernel/net/ipv4/tunnel4.ko
+kernel/net/ipv4/tunnel4.ko:
+kernel/net/ipv4/udp_diag.ko: kernel/net/ipv6/ipv6.ko
+kernel/net/ipv4/tcp_bic.ko:
+kernel/net/ipv4/tcp_westwood.ko:
+kernel/net/ipv4/tcp_highspeed.ko:
+kernel/net/ipv4/tcp_hybla.ko:
+kernel/net/ipv4/tcp_htcp.ko:
+kernel/net/ipv4/tcp_vegas.ko:
+kernel/net/ipv4/tcp_veno.ko:
+kernel/net/ipv4/tcp_scalable.ko:
+kernel/net/ipv4/tcp_lp.ko:
+kernel/net/ipv4/tcp_yeah.ko: kernel/net/ipv4/tcp_vegas.ko
+kernel/net/ipv4/tcp_illinois.ko:
+kernel/net/xfrm/xfrm_algo.ko:
+kernel/net/xfrm/xfrm_user.ko: kernel/net/xfrm/xfrm_algo.ko
+kernel/net/xfrm/xfrm_ipcomp.ko: kernel/net/xfrm/xfrm_algo.ko
+kernel/net/ipv6/netfilter/ip6_tables.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6table_filter.ko: kernel/net/ipv6/netfilter/ip6_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6table_mangle.ko: kernel/net/ipv6/netfilter/ip6_tables.ko kernel/net/ipv6/ipv6.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6table_raw.ko: kernel/net/ipv6/netfilter/ip6_tables.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6table_nat.ko: kernel/net/ipv6/netfilter/ip6_tables.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_nat.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko:
+kernel/net/ipv6/netfilter/nf_socket_ipv6.ko: kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/netfilter/nf_tproxy_ipv6.ko: kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/netfilter/nf_log_ipv6.ko: kernel/net/netfilter/nf_log_common.ko
+kernel/net/ipv6/netfilter/nf_reject_ipv6.ko: kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/netfilter/nf_dup_ipv6.ko: kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/netfilter/ip6t_ah.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_eui64.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_frag.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_ipv6header.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_mh.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_hbh.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_rt.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_NPT.ko: kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_REJECT.ko: kernel/net/ipv6/netfilter/nf_reject_ipv6.ko kernel/net/ipv6/ipv6.ko kernel/net/netfilter/x_tables.ko
+kernel/net/ipv6/netfilter/ip6t_SYNPROXY.ko: kernel/net/netfilter/nf_synproxy_core.ko kernel/net/netfilter/x_tables.ko kernel/net/netfilter/nf_conntrack.ko kernel/net/ipv6/netfilter/nf_defrag_ipv6.ko kernel/net/ipv4/netfilter/nf_defrag_ipv4.ko
+kernel/net/ipv6/ipv6.ko:
+kernel/net/ipv6/ah6.ko: kernel/net/xfrm/xfrm_algo.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/esp6.ko: kernel/net/xfrm/xfrm_algo.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/ipcomp6.ko: kernel/net/ipv6/xfrm6_tunnel.ko kernel/net/ipv6/tunnel6.ko kernel/net/xfrm/xfrm_ipcomp.ko kernel/net/xfrm/xfrm_algo.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/xfrm6_tunnel.ko: kernel/net/ipv6/tunnel6.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/tunnel6.ko:
+kernel/net/ipv6/mip6.ko: kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/ip6_vti.ko: kernel/net/ipv6/ip6_tunnel.ko kernel/net/ipv6/xfrm6_tunnel.ko kernel/net/ipv6/tunnel6.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/sit.ko: kernel/net/ipv4/tunnel4.ko kernel/net/ipv4/ip_tunnel.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/ip6_tunnel.ko: kernel/net/ipv6/tunnel6.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/ip6_gre.ko: kernel/net/ipv6/ip6_tunnel.ko kernel/net/ipv6/tunnel6.ko kernel/net/ipv4/gre.ko kernel/net/ipv6/ipv6.ko
+kernel/net/ipv6/fou6.ko: kernel/net/ipv4/fou.ko kernel/net/ipv6/ip6_tunnel.ko kernel/net/ipv6/tunnel6.ko kernel/net/ipv4/ip_tunnel.ko kernel/net/ipv6/ipv6.ko kernel/net/ipv6/ip6_udp_tunnel.ko kernel/net/ipv4/udp_tunnel.ko
+kernel/net/ipv6/ip6_udp_tunnel.ko:
+kernel/net/8021q/8021q.ko:
+kernel/net/wireless/cfg80211.ko: kernel/drivers/base/firmware_loader/firmware_class.ko
+kernel/net/llc/llc.ko:
+kernel/net/key/af_key.ko: kernel/net/xfrm/xfrm_algo.ko
+kernel/net/bridge/bridge.ko: kernel/net/802/stp.ko kernel/net/ipv6/ipv6.ko kernel/net/llc/llc.ko
+kernel/net/bridge/br_netfilter.ko: kernel/net/bridge/bridge.ko kernel/net/802/stp.ko kernel/net/ipv6/ipv6.ko kernel/net/llc/llc.ko
+kernel/net/sunrpc/sunrpc.ko:
+kernel/net/l2tp/l2tp_core.ko: kernel/net/ipv6/ipv6.ko kernel/net/ipv6/ip6_udp_tunnel.ko kernel/net/ipv4/udp_tunnel.ko
+kernel/net/l2tp/l2tp_ppp.ko: kernel/net/l2tp/l2tp_core.ko kernel/net/ipv6/ipv6.ko kernel/drivers/net/ppp/pppox.ko kernel/drivers/net/ppp/ppp_generic.ko kernel/drivers/net/slip/slhc.ko kernel/net/ipv6/ip6_udp_tunnel.ko kernel/net/ipv4/udp_tunnel.ko
+kernel/net/mac80211/mac80211.ko: kernel/net/wireless/cfg80211.ko kernel/drivers/base/firmware_loader/firmware_class.ko kernel/lib/crypto/libarc4.ko
+extra/mxs-dcp.ko:

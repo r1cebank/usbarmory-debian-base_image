@@ -6,7 +6,7 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y \
     bc binfmt-support bzip2 fakeroot gcc gcc-arm-linux-gnueabihf \
     git gnupg make parted rsync qemu-user-static wget xz-utils zip \
     debootstrap sudo dirmngr bison flex libssl-dev kmod udev cpio \
-    u-boot-tools cryptsetup
+    u-boot-tools cryptsetup kpartx
 
 # import U-Boot signing keys
 RUN gpg --batch --keyserver hkp://ha.pool.sks-keyservers.net --recv-keys 38DBBDC86092693E && \

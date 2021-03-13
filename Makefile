@@ -121,15 +121,13 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img; \
 		sudo /usr/sbin/kpartx -a $(LOSETUP_DEV); \
 		echo -e "Creating luks partition with password: ${LUKS_PASSWORD}"; \
-		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --key-size 256 --hash sha1 luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
+		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-memory 23804 --key-size 256 --hash sha1 luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
 		printf ${LUKS_PASSWORD} | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
 		sudo /sbin/mkfs.ext4 -F /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		sudo /usr/sbin/kpartx -d $(LOSETUP_DEV); \
 		sudo /sbin/losetup -d $(LOSETUP_DEV); \
 	fi
-	echo "done"
-	exit 1
 	# Mount bootfs
 	mkdir -p bootfs
 	sudo mount -o loop,offset=${BOOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img bootfs/
@@ -216,6 +214,8 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo cp armoryctl_${ARMORYCTL_VER}_armhf.deb rootfs/tmp/
 	sudo chroot rootfs /usr/bin/dpkg -i /tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
 	sudo rm rootfs/tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
+	sudo cp prebuilt/${LINUX_VER}/dcp_derive rootfs/usr/sbin
+	sudo chmod +x rootfs/usr/bin/dcp_derive
 	@if test "${BOOT}" = "uSD"; then \
 		echo "/dev/mmcblk0 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
 	else \
@@ -270,9 +270,17 @@ initramfs: busybox-bin-${BUSYBOX_VER}
 	chmod +x initramfs/init
 	mkdir -p initramfs/dev
 	cp prebuilt/${LINUX_VER}/dcp_derive initramfs/usr/sbin
+	cp prebuilt/${LINUX_VER}/armoryctl initramfs/usr/sbin
 	chmod +x initramfs/usr/sbin/dcp_derive
+	chmod +x initramfs/usr/sbin/armoryctl
+	cp -av prebuilt/${LINUX_VER}/modules initramfs/lib
 	mkdir -p initramfs/lib/modules/${LINUX_VER}-0
-	cp prebuilt/${LINUX_VER}/*.ko initramfs/lib/modules/${LINUX_VER}-0
+	@if test "${IMX}" = "imx6ulz"; then \
+		cp prebuilt/${LINUX_VER}/mxs-dcp.ko initramfs/lib/modules/${LINUX_VER}-0/extra; \
+	fi
+	@if test "${IMX}" = "imx6ul"; then \
+		cp prebuilt/${LINUX_VER}/caam_keyblob.ko initramfs/lib/modules/${LINUX_VER}-0/extra; \
+	fi
 	cd initramfs/dev && \
 		mknod -m 622 console c 5 1 && \
 		mknod -m 622 tty0 c 4 0
@@ -418,6 +426,9 @@ armory-boot: armory-boot.imx
 
 release: check_version usbarmory-${IMG_VERSION}.img.xz
 	sha256sum usbarmory-${IMG_VERSION}.img.xz > usbarmory-${IMG_VERSION}.img.xz.sha256
+	@if test "${LUKS}" = "on"; then \
+		echo -e "The LUKS password is: ${LUKS_PASSWORD}"; \
+	fi
 
 clean:
 	-rm -fr armoryctl* linux-* linux-image-* linux-headers-* u-boot-* busybox-* initramfs cryptsetup

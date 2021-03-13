@@ -17,7 +17,46 @@ The Makefile in this repository is based on the [official usbarmory debian image
 ## Prebuilt Modules
 We run into chicken and egg situation with embedded modules for initramfs, initramfs is packaged by kernel during build and kernel modules are only built after the kernel is built. So the prebuilt folder will include prebuilt kernel modules so they can be packaged inside the initramfs, if you are unsure about the ones I packaged, replace the modules with ones you built. Make sure all the symlink is working.
 
-## Pre-requisites
+## Build Modes
+Enable LUKS with secure boot requires a lot of work manually, I have came up with an easy way to provision the drives without the need to use debug cables or doing manual file updates on the SD card (debug cable is still highly recommended).
+
+The following build mode can be chosen with this script:
+
+* Normal (no need to supply PKI)
+* Signed (PKI and public key for bootloader needs to be provided for secure boot)
+
+## LUKS Mode
+If you want to build LUKS encrypted image, please set `LUKS=on` when running make.
+
+If LUKS is turned on, the auto unlock script will be added with an random password. (This is not safe, you must rebuild boot partition with derived password later)
+
+## Build Target
+* boot partition (used to update kernel, provision new key)
+* bootloader (used to update bootloader)
+* full image (full image that can be written to the SD)
+
+## Secure Boot Procedure
+To enable secure boot with LUKS encrypted rootfs, please follow the following procedure:
+
+### Locked Devices
+If your devices is already locked down, SoC fused, you can only use `Signed Mode`, any unsigned bootloader will not able to run on the device. But you can still use this script if you have the PKI keys and build in signed mode.
+
+1. Build LUKS enabled signed image
+2. Login and run `dcp_derive enc [new key] [diversifier]` and get the hardware derived key. Copy this.
+3. Rebuild the boot partition with PKI and `[derived key]` and `[diversifier]`
+4. Flash the new boot partition.
+
+## Unlocked Devices
+If your devices is unlocked, you can execute unsigned image, but I do recommend you put the device in locked state after
+
+1. Build LUKS enabled unsigned image
+2. Login and run `dcp_derive enc [new key] [diversifier]` and get the hardware derived key. Copy this.
+3. Rebuild the boot partition with `[derived key]` and `[diversifier]`
+4. Flash the new boot partition.
+5. Test to see if unlock works
+6. Generate the PKI and fust the SoC
+7. Rebuild the boot partition with PKI and `[derived key]` and `[diversifier]`
+8. Flash the new boot partition.## Pre-requisites
 
 A Debian 9 installation with the following packages:
 
