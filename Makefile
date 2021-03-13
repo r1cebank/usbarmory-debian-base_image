@@ -41,12 +41,19 @@ LOOP_DEV=$(shell /usr/bin/basename $(LOSETUP_DEV))
 
 .DEFAULT_GOAL := release
 
+SIGNED=off
 LUKS=off
+
 ROOTFS_MAPPER_NAME=rootfs
 RANDOM_PASSWORD=$(shell /usr/bin/openssl rand -hex 20)
 GENERATE_PASSWORD=$(eval LUKS_PASSWORD=$(RANDOM_PASSWORD))
+
 BOOT ?= uSD
 BOOT_PARSED=$(shell echo "${BOOT}" | tr '[:upper:]' '[:lower:]')
+
+SD_DEV=mmcblk0
+MMC_DEV=mmcblk1
+ROOTFS_DEV=$(shell [ ${BOOT} = uSD ] && echo ${SD_DEV} || ${MMC_DEV})
 
 check_version:
 	@if test "${BOOT}" != "uSD" && test "${BOOT}" != eMMC; then \
@@ -92,8 +99,9 @@ u-boot-${UBOOT_VER}/u-boot.bin: check_version u-boot-${UBOOT_VER}.tar.bz2
 	fi
 	cd u-boot-${UBOOT_VER} && CROSS_COMPILE=arm-linux-gnueabihf- ARCH=arm make -j${JOBS}
 
-#### debian ####
+# bootfs.img: linux-${LINUX_VER}/arch/arm/boot/zImage
 
+#### debian ####
 DEBIAN_DEPS := check_version
 DEBIAN_DEPS += armoryctl_${ARMORYCTL_VER}_armhf.deb
 DEBIAN_DEPS += linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
@@ -180,11 +188,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo install -m 644 -o root -g root conf/usbarmory.conf rootfs/etc/modprobe.d/usbarmory.conf
 	sudo sed -i -e 's/INTERFACESv4=""/INTERFACESv4="usb0"/' rootfs/etc/default/isc-dhcp-server
 	echo "tmpfs /tmp tmpfs defaults 0 0" | sudo tee rootfs/etc/fstab
-	@if test "${BOOT}" = "uSD"; then \
-		echo "/dev/mmcblk0p1 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
-	else \
-		echo "/dev/mmcblk1p1 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab; \
-	fi
+	echo "/dev/${ROOTFS_DEV}p1 /boot ext4 defaults 0 2" | sudo tee -a rootfs/etc/fstab
 	echo -e "\nUseDNS no" | sudo tee -a rootfs/etc/ssh/sshd_config
 	echo "nameserver 8.8.8.8" | sudo tee rootfs/etc/resolv.conf
 	sudo chroot rootfs systemctl mask getty-static.service
@@ -216,11 +220,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo rm rootfs/tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
 	sudo cp prebuilt/${LINUX_VER}/dcp_derive rootfs/usr/sbin
 	sudo chmod +x rootfs/usr/bin/dcp_derive
-	@if test "${BOOT}" = "uSD"; then \
-		echo "/dev/mmcblk0 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
-	else \
-		echo "/dev/mmcblk1 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config; \
-	fi
+	echo "/dev/${ROOTFS_DEV} 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config
 	sudo chroot rootfs apt-get clean
 	sudo chroot rootfs fake-hwclock
 	sudo rm rootfs/usr/bin/qemu-arm-static
@@ -262,8 +262,31 @@ busybox-bin-${BUSYBOX_VER}: busybox-${BUSYBOX_VER}.tar.bz2
 		sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config && \
 		make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- install
 
+#### init script ####
+init:
+	@if test "${LUKS}" == "off"; then \
+		cp init-no-luks init; \
+	else \
+		if test "${DCP_PASSWORD}" == ""; then \
+			cp init-luks-unlock init; \
+			sed -i "s/{LUKS_PASSWORD}/${LUKS_PASSWORD}/g" init; \
+		else \
+			if test "${DIVERSIFIER}" == ""; then \
+				echo "Password diversifier is required when dcp is on"; \
+				exit 1; \
+			fi; \
+			cp init-luks-dcp init; \
+			sed -i "s/{DCP_PASSWORD}/${DCP_PASSWORD}/g" init; \
+			sed -i "s/{DIVERSIFIER}/${DIVERSIFIER}/g" init; \
+		fi; \
+	fi
+	@if test "${TEST_INIT}" == "on"; then \
+		cp init-test init; \
+	fi
+	sed -i "s/{ROOTFS_DEV}/${ROOTFS_DEV}/g" init
+
 #### initramfs ####
-initramfs: busybox-bin-${BUSYBOX_VER}
+initramfs: busybox-bin-${BUSYBOX_VER} init
 	mkdir -pv initramfs/{bin,dev,sbin,etc,run,boot,proc,sys/kernel/debug,usr/{bin,sbin},lib/modules,mnt/root,root}
 	cp -av busybox-${BUSYBOX_VER}/_install/* initramfs
 	cp init initramfs
@@ -434,6 +457,7 @@ clean:
 	-rm -fr armoryctl* linux-* linux-image-* linux-headers-* u-boot-* busybox-* initramfs cryptsetup
 	-rm -fr mxc-scc2-master* mxs-dcp-master* caam-keyblob-master* armory-boot-master*
 	-rm -f usbarmory-*
+	-rm -f init
 	-sudo umount -f rootfs
 	-sudo umount -f bootfs
 	-rmdir bootfs

@@ -32,7 +32,7 @@ echo -e "**********   Kernel modules loaded       **********\n" > /dev/kmsg
 
 sleep 5
 
-printf {LUKS_PASSWORD} | cryptsetup luksOpen /dev/{ROOTFS_DEV}p2 rootfs -d -
+dcp_derive dec {DCP_PASSWORD} {DIVERSIFIER} | cryptsetup luksOpen /dev/{ROOTFS_DEV}p2 rootfs -d -
 mount /dev/mapper/rootfs /root
 
 # Switch root
