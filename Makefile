@@ -44,6 +44,13 @@ LOOP_DEV=$(shell /usr/bin/basename $(LOSETUP_DEV))
 SIGNED=off
 LUKS=off
 
+# tuned to provide reasonable startup time on usbarmory
+# do not change unless you know what they do
+# https://man7.org/linux/man-pages/man8/cryptsetup.8.html
+LUKS_PBKDF_COUNT=7393
+LUKS_PBKDF_MEMORY=23804
+LUKS_PBKDF_PARALLEL=1
+
 ROOTFS_MAPPER_NAME=rootfs
 RANDOM_PASSWORD=$(shell /usr/bin/openssl rand -hex 20)
 GENERATE_PASSWORD=$(eval LUKS_PASSWORD=$(RANDOM_PASSWORD))
@@ -54,6 +61,9 @@ BOOT_PARSED=$(shell echo "${BOOT}" | tr '[:upper:]' '[:lower:]')
 SD_DEV=mmcblk0
 MMC_DEV=mmcblk1
 ROOTFS_DEV=$(shell [ ${BOOT} = uSD ] && echo ${SD_DEV} || ${MMC_DEV})
+
+prebuild:
+	$(GENERATE_PASSWORD)
 
 check_version:
 	@if test "${BOOT}" != "uSD" && test "${BOOT}" != eMMC; then \
@@ -118,7 +128,6 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV)
 	sudo /sbin/losetup -d $(LOSETUP_DEV)
 	# make filesystem on the rootfs, luks or ext4
-	$(GENERATE_PASSWORD)
 	@if test "${LUKS}" = "off"; then \
 		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img -o ${ROOT_PARTITION_OFFSET} --sizelimit ${IMAGE_SIZE}MiB; \
 		sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV); \
@@ -129,7 +138,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img; \
 		sudo /usr/sbin/kpartx -a $(LOSETUP_DEV); \
 		echo -e "Creating luks partition with password: ${LUKS_PASSWORD}"; \
-		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-memory 23804 --key-size 256 --hash sha1 luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
+		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-force-iterations ${LUKS_PBKDF_COUNT} --pbkdf-memory ${LUKS_PBKDF_MEMORY} --pbkdf-parallel ${LUKS_PBKDF_PARALLEL} luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
 		printf ${LUKS_PASSWORD} | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
 		sudo /sbin/mkfs.ext4 -F /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
@@ -218,7 +227,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	sudo cp armoryctl_${ARMORYCTL_VER}_armhf.deb rootfs/tmp/
 	sudo chroot rootfs /usr/bin/dpkg -i /tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
 	sudo rm rootfs/tmp/armoryctl_${ARMORYCTL_VER}_armhf.deb
-	sudo cp prebuilt/${LINUX_VER}/dcp_derive rootfs/usr/sbin
+	sudo cp prebuilt/${LINUX_VER}/dcp_derive rootfs/usr/bin
 	sudo chmod +x rootfs/usr/bin/dcp_derive
 	echo "/dev/${ROOTFS_DEV} 0x100000 0x2000 0x2000" | sudo tee rootfs/etc/fw_env.config
 	sudo chroot rootfs apt-get clean
@@ -229,8 +238,8 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	@if test "${LUKS}" = "on"; then \
 		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		sudo /usr/sbin/kpartx -d $(LOSETUP_DEV); \
-		sudo /sbin/losetup -d $(LOSETUP_DEV); \
 	fi
+	sudo /sbin/losetup -d $(LOSETUP_DEV)
 
 #### debian-xz ####
 
@@ -308,6 +317,14 @@ initramfs: busybox-bin-${BUSYBOX_VER} init
 		mknod -m 622 console c 5 1 && \
 		mknod -m 622 tty0 c 4 0
 	cp -av prebuilt/${LINUX_VER}/cryptsetup/* initramfs
+	echo "leds_gpio" | sudo tee -a initramfs/etc/modules
+	echo "led_class" | sudo tee -a initramfs/etc/modules
+	echo "mxs_dcp" | sudo tee -a initramfs/etc/modules
+	echo "algif_rng" | sudo tee -a initramfs/etc/modules
+	echo "algif_skcipher" | sudo tee -a initramfs/etc/modules
+	echo "algif_hash" | sudo tee -a initramfs/etc/modules
+	echo "af_alg" | sudo tee -a initramfs/etc/modules
+	echo "dm_crypt" | sudo tee -a initramfs/etc/modules
 
 #### linux ####
 
@@ -447,7 +464,7 @@ armoryctl: armoryctl-${ARMORYCTL_VER}/armoryctl
 armoryctl-deb: armoryctl_${ARMORYCTL_VER}_armhf.deb
 armory-boot: armory-boot.imx
 
-release: check_version usbarmory-${IMG_VERSION}.img.xz
+release: prebuild check_version usbarmory-${IMG_VERSION}.img.xz
 	sha256sum usbarmory-${IMG_VERSION}.img.xz > usbarmory-${IMG_VERSION}.img.xz.sha256
 	@if test "${LUKS}" = "on"; then \
 		echo -e "The LUKS password is: ${LUKS_PASSWORD}"; \

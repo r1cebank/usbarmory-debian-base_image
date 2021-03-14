@@ -15,25 +15,33 @@ echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n" > /dev/kmsg
 echo -e "********** Starting custom unlock script **********\n" > /dev/kmsg
 
 echo -e "**********    Loading kernel modules     **********\n" > /dev/kmsg
+
 echo -e "Loading: dm-crypt\n" > /dev/kmsg
-modprobe dm-crypt
+modprobe -q dm-crypt
 echo -e "Loading: af_alg\n" > /dev/kmsg
-modprobe af_alg
+modprobe -q af_alg
 echo -e "Loading: algif_hash\n" > /dev/kmsg
-modprobe algif_hash
+modprobe -q algif_hash
 echo -e "Loading: algif_skcipher\n" > /dev/kmsg
-modprobe algif_skcipher
+modprobe -q algif_skcipher
 echo -e "Loading: algif_rng\n" > /dev/kmsg
-modprobe algif_rng
+modprobe -q algif_rng
 echo -e "Loading: mxs_dcp\n" > /dev/kmsg
-modprobe mxs_dcp
+modprobe -q mxs_dcp
+echo -e "Loading: leds_gpio\n" > /dev/kmsg
+modprobe -q leds_gpio
+echo -e "Loading: led_class\n" > /dev/kmsg
+modprobe -q led_class
 
 echo -e "**********   Kernel modules loaded       **********\n" > /dev/kmsg
+armoryctl led white on
+sleep 1
 
-sleep 5
-
+armoryctl led blue on
 printf {LUKS_PASSWORD} | cryptsetup luksOpen /dev/{ROOTFS_DEV}p2 rootfs -d -
+armoryctl led blue off
 mount /dev/mapper/rootfs /root
 
+armoryctl led white off
 # Switch root
 exec switch_root -c /dev/console /root /sbin/init

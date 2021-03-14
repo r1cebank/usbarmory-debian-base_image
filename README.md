@@ -30,6 +30,13 @@ If you want to build LUKS encrypted image, please set `LUKS=on` when running mak
 
 If LUKS is turned on, the auto unlock script will be added with an random password. (This is not safe, you must rebuild boot partition with derived password later)
 
+### LUKS KDF
+By default LUKS2 uses Argon2i as KDF (key derivation function), the problem with it is since the parameters is calculated during a benchmark for `luksFormat` if you execute this Makefile (which I believe you would) on a way faster machine, the resulting LUKS partition will take ages to unlock due to the complexity of the KDF. There is two way to fix this:
+* Run `luksFormat` on device so the resulting partition is somewhat usable
+* Tweak the Argon2i's parameters so it doesn't matter if you create it on a faster machine or slower machine.
+
+Note, because the script is tweaking the default parameters for LUKS, it might decrease security for the resulting partition. Just keep this in mind.
+
 ## Build Target
 * boot partition (used to update kernel, provision new key)
 * bootloader (used to update bootloader)
@@ -46,7 +53,7 @@ If your devices is already locked down, SoC fused, you can only use `Signed Mode
 3. Rebuild the boot partition with PKI and `[derived key]` and `[diversifier]`
 4. Flash the new boot partition.
 
-## Unlocked Devices
+### Unlocked Devices
 If your devices is unlocked, you can execute unsigned image, but I do recommend you put the device in locked state after
 
 1. Build LUKS enabled unsigned image
