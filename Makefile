@@ -23,13 +23,14 @@ ROOT_PARTITION_OFFSET=$(shell echo $$(( ($(BOOT_PARTITION_SIZE_MEGS) + $(BOOT_PA
 # The starting of the boot partition, in multiples of 1048576 (1MB)
 BOOT_PARTITION_OFFSET=$(shell echo $$(( $(BOOT_PARTITION_START_MEGS) * $(MEGA) )) )
 # armory-boot only option
-BOOT_CONSOLE=on
+BOOT_CONSOLE ?= on
 # armory-boot or u-boot (secure-boot only supports armory-boot)
 BOOTLOADER=armory-boot
 
 IMAGE_SIZE=3500
 
 ARMORY_BOOT_REPO=https://github.com/r1cebank/armory-boot
+USBARMORY_GIT=https://github.com/r1cebank/usbarmory
 USBARMORY_REPO=https://raw.githubusercontent.com/r1cebank/usbarmory/master
 ARMORYCTL_REPO=https://github.com/f-secure-foundry/armoryctl
 MXC_SCC2_REPO=https://github.com/f-secure-foundry/mxc-scc2
@@ -42,6 +43,10 @@ LOOP_DEV=$(shell /usr/bin/basename $(LOSETUP_DEV))
 .DEFAULT_GOAL := release
 
 SIGNED=off
+BOOT_PRIVATE_KEY ?= /opt/pki-keys/armory-boot.asc
+BOOT_PUBLIC_KEY ?= undefined
+HAB_KEYS ?= /opt/pki-keys
+BOOT_PRIVATE_KEY_PASSWORD ?= $(shell bash -c 'read -s -p "Boot certificate password: " pwd; echo $$pwd')
 LUKS=off
 
 # tuned to provide reasonable startup time on usbarmory
@@ -76,7 +81,28 @@ ROOTFS_DEV=$(shell [ ${BOOT} = uSD ] && echo ${SD_DEV} || ${MMC_DEV})
 prebuild:
 	$(GENERATE_PASSWORD)
 
-check_version:
+check_params:
+	@if test "${SIGNED}" != "on" && test "${SIGNED}" != "off"; then \
+		echo "invalid signed setting, can be on or off"; \
+	fi
+	@if test "${SIGNED}" = "on"; then \
+		if test ${BOOTLOADER} != "armory-boot"; then \
+			echo "secure boot is only supported with armory-boot"; \
+			exit 1; \
+		fi; \
+		if test "${BOOT_PRIVATE_KEY}" = ""; then \
+			echo "please provide location of the armory-boot private key location"; \
+			exit 1; \
+		fi; \
+		if test "${HAB_KEYS}" = ""; then \
+			echo "please provide location of the HAB keys"; \
+			exit 1; \
+		fi; \
+		if test "${BOOT_PUBLIC_KEY}" = "undefined"; then \
+			echo "please provide of the armory-boot public key string"; \
+			exit 1; \
+		fi; \
+	fi
 	@if test "${BOOT}" != "uSD" && test "${BOOT}" != eMMC; then \
 			echo "invalid target, mark-two BOOT options are: uSD, eMMC"; \
 			exit 1; \
@@ -93,11 +119,12 @@ check_version:
 #### armory-boot ####
 armory-boot-master.zip:
 	wget ${ARMORY_BOOT_REPO}/archive/master.zip -O armory-boot-master.zip
-
 armory-boot-master: armory-boot-master.zip
 	unzip -o armory-boot-master.zip
 armory-boot.imx: armory-boot-master
 	cd armory-boot-master && make BUILD_USER=${KBUILD_BUILD_USER} BUILD_HOST=${KBUILD_BUILD_HOST} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx BOOT=${BOOT} CONSOLE=${BOOT_CONSOLE} START=${BOOT_PARTITION_OFFSET}
+armory-boot-signed.imx: armory-boot-master
+	cd armory-boot-master && make BUILD_USER=${KBUILD_BUILD_USER} BUILD_HOST=${KBUILD_BUILD_HOST} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx_signed BOOT=${BOOT} CONSOLE=${BOOT_CONSOLE} START=${BOOT_PARTITION_OFFSET} PUBLIC_KEY=${BOOT_PUBLIC_KEY} HAB_KEYS=${HAB_KEYS}
 
 #### u-boot ####
 
@@ -105,7 +132,7 @@ u-boot-${UBOOT_VER}.tar.bz2:
 	wget ftp://ftp.denx.de/pub/u-boot/u-boot-${UBOOT_VER}.tar.bz2 -O u-boot-${UBOOT_VER}.tar.bz2
 	wget ftp://ftp.denx.de/pub/u-boot/u-boot-${UBOOT_VER}.tar.bz2.sig -O u-boot-${UBOOT_VER}.tar.bz2.sig
 
-u-boot-${UBOOT_VER}/u-boot.bin: check_version u-boot-${UBOOT_VER}.tar.bz2
+u-boot-${UBOOT_VER}/u-boot.bin: check_params u-boot-${UBOOT_VER}.tar.bz2
 	gpg --verify u-boot-${UBOOT_VER}.tar.bz2.sig
 	tar xfm u-boot-${UBOOT_VER}.tar.bz2
 	cd u-boot-${UBOOT_VER} && make distclean
@@ -123,7 +150,7 @@ u-boot-${UBOOT_VER}/u-boot.bin: check_version u-boot-${UBOOT_VER}.tar.bz2
 # bootfs.img: linux-${LINUX_VER}/arch/arm/boot/zImage
 
 #### debian ####
-DEBIAN_DEPS := check_version
+DEBIAN_DEPS := check_params
 DEBIAN_DEPS += armoryctl_${ARMORYCTL_VER}_armhf.deb
 DEBIAN_DEPS += linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 DEBIAN_DEPS += linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
@@ -174,6 +201,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 		sed -i 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
 		sed -i 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' bootfs/boot/armory-boot.conf; \
 		sed -i 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' bootfs/boot/armory-boot.conf; \
+		echo ${BOOT_PRIVATE_KEY_PASSWORD} | signify-openbsd -S -s ${BOOT_PRIVATE_KEY} -m bootfs/boot/armory-boot.conf -x bootfs/boot/armory-boot.conf.sig; \
 		cd bootfs; \
 			ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
 			ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
@@ -254,16 +282,24 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 
 #### debian-xz ####
 
-IMAGE_DEPS := check_version
+IMAGE_DEPS := check_params
 ifeq ($(BOOTLOADER),armory-boot)
-IMAGE_DEPS += armory-boot.imx
+	ifeq ($(SIGNED), on)
+		IMAGE_DEPS += armory-boot-signed.imx
+	else
+		IMAGE_DEPS += armory-boot.imx
+	endif
 endif
 ifeq ($(BOOTLOADER),u-boot)
-IMAGE_DEPS += u-boot-${UBOOT_VER}/u-boot.bin
+	IMAGE_DEPS += u-boot-${UBOOT_VER}/u-boot.bin
 endif
 usbarmory-${IMG_VERSION}.img.xz: usbarmory-${IMG_VERSION}.img $(IMAGE_DEPS)
 	@if test "${BOOTLOADER}" = "armory-boot"; then \
-		sudo dd if=armory-boot-master/armory-boot.imx of=usbarmory-${IMG_VERSION}.img bs=512 seek=2 conv=fsync conv=notrunc; \
+		if test "${SIGNED}" = "on"; then \
+			sudo dd if=armory-boot-master/armory-boot-signed.imx of=usbarmory-${IMG_VERSION}.img bs=512 seek=2 conv=fsync conv=notrunc; \
+		else \
+			sudo dd if=armory-boot-master/armory-boot.imx of=usbarmory-${IMG_VERSION}.img bs=512 seek=2 conv=fsync conv=notrunc; \
+		fi \
 	else \
 		sudo dd if=u-boot-${UBOOT_VER}/u-boot-dtb.imx of=usbarmory-${IMG_VERSION}.img bs=512 seek=2 conv=fsync conv=notrunc; \
 	fi
@@ -343,7 +379,7 @@ linux-${LINUX_VER}.tar.xz:
 	wget https://www.kernel.org/pub/linux/kernel/v5.x/linux-${LINUX_VER}.tar.xz -O linux-${LINUX_VER}.tar.xz
 	wget https://www.kernel.org/pub/linux/kernel/v5.x/linux-${LINUX_VER}.tar.sign -O linux-${LINUX_VER}.tar.sign
 
-linux-${LINUX_VER}/arch/arm/boot/zImage: check_version initramfs linux-${LINUX_VER}.tar.xz
+linux-${LINUX_VER}/arch/arm/boot/zImage: check_params initramfs linux-${LINUX_VER}.tar.xz
 	@if [ ! -d "linux-${LINUX_VER}" ]; then \
 		unxz --keep linux-${LINUX_VER}.tar.xz; \
 		gpg --verify linux-${LINUX_VER}.tar.sign; \
@@ -394,7 +430,7 @@ caam-keyblob-master/caam-keyblob.ko: caam-keyblob-master linux-${LINUX_VER}/arch
 
 #### linux-image-deb ####
 
-KERNEL_DEPS := check_version
+KERNEL_DEPS := check_params
 KERNEL_DEPS += linux-${LINUX_VER}/arch/arm/boot/zImage
 KERNEL_DEPS += mxs-dcp caam-keyblob
 linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb: $(KERNEL_DEPS)
@@ -418,7 +454,7 @@ linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb: 
 
 #### linux-headers-deb ####
 
-HEADER_DEPS := check_version
+HEADER_DEPS := check_params
 HEADER_DEPS += linux-${LINUX_VER}/arch/arm/boot/zImage
 linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb: $(HEADER_DEPS)
 	mkdir -p linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf/{DEBIAN,boot,lib/modules/${LINUX_VER}${LOCALVERSION}/build}
@@ -475,7 +511,7 @@ armoryctl: armoryctl-${ARMORYCTL_VER}/armoryctl
 armoryctl-deb: armoryctl_${ARMORYCTL_VER}_armhf.deb
 armory-boot: armory-boot.imx
 
-release: prebuild check_version usbarmory-${IMG_VERSION}.img.xz
+release: prebuild check_params usbarmory-${IMG_VERSION}.img.xz
 	sha256sum usbarmory-${IMG_VERSION}.img.xz > usbarmory-${IMG_VERSION}.img.xz.sha256
 	@if test "${LUKS}" = "on"; then \
 		echo -e "The LUKS password is: ${LUKS_PASSWORD}"; \
