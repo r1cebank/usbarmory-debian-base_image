@@ -47,8 +47,19 @@ LUKS=off
 # tuned to provide reasonable startup time on usbarmory
 # do not change unless you know what they do
 # https://man7.org/linux/man-pages/man8/cryptsetup.8.html
-LUKS_PBKDF_COUNT=7393
+
+# Avoid PBKDF benchmark and set time cost (iterations)
+# directly.  It can be used for LUKS/LUKS2 device only.
+LUKS_PBKDF_TIME_COST=7393
+# Set the memory cost for PBKDF (for Argon2i/id the number
+# represents kilobytes).  Note that it is maximal value,
+# PBKDF benchmark or available physical memory can decrease
+# it.  This option is not available for PBKDF2.
 LUKS_PBKDF_MEMORY=23804
+# Set the parallel cost for PBKDF (number of threads, up to
+# 4).  Note that it is maximal value, it is decreased
+# automatically if CPU online count is lower.  This option
+# is not available for PBKDF2.
 LUKS_PBKDF_PARALLEL=1
 
 ROOTFS_MAPPER_NAME=rootfs
@@ -138,7 +149,7 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img; \
 		sudo /usr/sbin/kpartx -a $(LOSETUP_DEV); \
 		echo -e "Creating luks partition with password: ${LUKS_PASSWORD}"; \
-		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-force-iterations ${LUKS_PBKDF_COUNT} --pbkdf-memory ${LUKS_PBKDF_MEMORY} --pbkdf-parallel ${LUKS_PBKDF_PARALLEL} luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
+		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-force-iterations ${LUKS_PBKDF_TIME_COST} --pbkdf-memory ${LUKS_PBKDF_MEMORY} --pbkdf-parallel ${LUKS_PBKDF_PARALLEL} luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
 		printf ${LUKS_PASSWORD} | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
 		sudo /sbin/mkfs.ext4 -F /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
