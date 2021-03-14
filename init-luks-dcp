@@ -35,7 +35,7 @@ modprobe -q led_class
 
 echo -e "**********   Kernel modules loaded       **********\n" > /dev/kmsg
 armoryctl led white on
-sleep 1
+sleep 2
 
 armoryctl led blue on
 dcp_derive dec {DCP_PASSWORD} {DIVERSIFIER} | cryptsetup luksOpen /dev/{ROOTFS_DEV}p2 rootfs -d -

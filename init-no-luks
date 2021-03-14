@@ -12,7 +12,18 @@ mount -n -t tmpfs    tmpfs    /run
 
 echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n" > /dev/kmsg
 
-mount /dev/{ROOTFS_DEV}p2 /root
+echo -e "**********    Loading kernel modules     **********\n" > /dev/kmsg
+echo -e "Loading: leds_gpio\n" > /dev/kmsg
+modprobe -q leds_gpio
+echo -e "Loading: led_class\n" > /dev/kmsg
+modprobe -q led_class
 
+armoryctl led white on
+sleep 2
+
+armoryctl led blue on
+mount /dev/{ROOTFS_DEV}p2 /root
+armoryctl led blue off
+armoryctl led white off
 # Switch root
 exec switch_root -c /dev/console /root /sbin/init

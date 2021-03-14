@@ -249,8 +249,8 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	@if test "${LUKS}" = "on"; then \
 		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		sudo /usr/sbin/kpartx -d $(LOSETUP_DEV); \
+		sudo /sbin/losetup -d $(LOSETUP_DEV); \
 	fi
-	sudo /sbin/losetup -d $(LOSETUP_DEV)
 
 #### debian-xz ####
 
