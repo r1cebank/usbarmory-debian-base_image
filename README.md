@@ -2,6 +2,8 @@
 
 The Makefile in this repository is based on the [official usbarmory debian image repo](https://github.com/f-secure-foundry/usbarmory-debian-base_image)
 
+Before using, please make effort reading the entire document, understanding the risks and ways to prevent yourself from data loss.
+
 ## Differences
 * Able to customize bootloader (u-boot, armory-boot)
 * Build image to use for secure boot (only with armory-boot)
@@ -244,6 +246,11 @@ Here are the LED sequence to look for if you do not have an debug cable or conso
 | 1. before LUKS unlock           | on   | on    |
 | 2. LUKS unlocked                | off  | on    |
 | 3. before calling switch_root   | off  | off   |
+
+## Data Protection and Loss
+Since the rootfs is encrypted with LUKS and hopefully you are using derived password to auto unlock the drive. If the boot partition is damaged, you will not able to boot into the device and data stored on it is lost.
+
+To prevent this, please keep the derived password in a safe location, in case of a corrupted boot partition, you can regenerate the boot partition image with the derived password + HAB keys.
 
 ### Accessing the USB armory Mk II internal eMMC as USB storage device
 
