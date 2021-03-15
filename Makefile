@@ -75,7 +75,7 @@ BOOT_PARSED=$(shell echo "${BOOT}" | tr '[:upper:]' '[:lower:]')
 
 SD_DEV=mmcblk0
 MMC_DEV=mmcblk1
-ROOTFS_DEV=$(shell [ ${BOOT} = uSD ] && echo ${SD_DEV} || ${MMC_DEV})
+ROOTFS_DEV=$(shell [ ${BOOT} = uSD ] && echo ${SD_DEV} || echo ${MMC_DEV})
 
 check_params:
 ifeq ($(strip $(LUKS_PASSWORD)),)

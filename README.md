@@ -115,6 +115,15 @@ make IMX=imx6ulz BOOT=uSD
 
 # For the USB armory Mk II (internal eMMC)
 make IMX=imx6ulz BOOT=eMMC
+
+# Building with signed bootloader and configs (armory-boot only)
+make IMX=imx6ulz BOOT=uSD SIGNED=on
+
+# Building with LUKS turned on (not secure, replace with HW derived keys later)
+make IMX=imx6ulz BOOT=uSD LUKS=on
+
+# Building with LUKS turned on with derived password, signed (final stage)
+make IMX=imx6ulz BOOT=eMMC LUKS=on SIGNED=on BOOT_PUBLIC_KEY=[your public key] DCP_PASSWORD=[derived password] DIVERSIFIER=[diversifier when you used dcp_derive] LUKS_PASSWORD=[the plaintext password for luks, only used when creating the image]
 ```
 
 ## Building signed image
