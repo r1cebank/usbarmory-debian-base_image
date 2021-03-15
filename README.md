@@ -65,6 +65,7 @@ If your devices is unlocked, you can execute unsigned image, but I do recommend 
 7. Rebuild the boot partition with PKI and `[derived key]` and `[diversifier]`
 8. Flash the new boot partition.## Pre-requisites
 
+## Build pre-requisites
 A Debian 9 installation with the following packages:
 
 ```
