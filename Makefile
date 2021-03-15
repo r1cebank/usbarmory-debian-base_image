@@ -46,7 +46,9 @@ SIGNED=off
 BOOT_PRIVATE_KEY ?= /opt/pki-keys/armory-boot.asc
 BOOT_PUBLIC_KEY ?= undefined
 HAB_KEYS ?= /opt/pki-keys
-BOOT_PRIVATE_KEY_PASSWORD ?= $(shell bash -c 'read -s -p "Boot certificate password: " pwd; echo $$pwd')
+ifeq ($(SIGNED), on)
+	BOOT_PRIVATE_KEY_PASSWORD ?= $(shell bash -c 'read -s -p "Boot certificate password: " pwd; echo $$pwd')
+endif
 LUKS=off
 
 # tuned to provide reasonable startup time on usbarmory
@@ -55,7 +57,7 @@ LUKS=off
 
 # Avoid PBKDF benchmark and set time cost (iterations)
 # directly.  It can be used for LUKS/LUKS2 device only.
-LUKS_PBKDF_TIME_COST=7393
+LUKS_PBKDF_TIME_COST=4
 # Set the memory cost for PBKDF (for Argon2i/id the number
 # represents kilobytes).  Note that it is maximal value,
 # PBKDF benchmark or available physical memory can decrease
@@ -78,10 +80,11 @@ SD_DEV=mmcblk0
 MMC_DEV=mmcblk1
 ROOTFS_DEV=$(shell [ ${BOOT} = uSD ] && echo ${SD_DEV} || ${MMC_DEV})
 
-prebuild:
-	$(GENERATE_PASSWORD)
-
 check_params:
+ifeq ($(strip $(LUKS_PASSWORD)),)
+	echo "Generating LUKS keys"
+	$(GENERATE_PASSWORD)
+endif
 	@if test "${SIGNED}" != "on" && test "${SIGNED}" != "off"; then \
 		echo "invalid signed setting, can be on or off"; \
 	fi
@@ -91,15 +94,15 @@ check_params:
 			exit 1; \
 		fi; \
 		if test "${BOOT_PRIVATE_KEY}" = ""; then \
-			echo "please provide location of the armory-boot private key location"; \
+			echo "please provide location of the armory-boot private key location: BOOT_PRIVATE_KEY"; \
 			exit 1; \
 		fi; \
 		if test "${HAB_KEYS}" = ""; then \
-			echo "please provide location of the HAB keys"; \
+			echo "please provide location of the HAB keys: HAB_KEYS"; \
 			exit 1; \
 		fi; \
 		if test "${BOOT_PUBLIC_KEY}" = "undefined"; then \
-			echo "please provide of the armory-boot public key string"; \
+			echo "please provide of the armory-boot public key string: BOOT_PUBLIC_KEY"; \
 			exit 1; \
 		fi; \
 	fi
@@ -110,11 +113,44 @@ check_params:
 			echo "invalid target, mark-two IMX options are: imx6ul, imx6ulz"; \
 			exit 1; \
 	fi
-	@ if test "${LUKS}" != "off" && test "${LUKS}" != "on"; then \
+	@if test "${LUKS}" != "off" && test "${LUKS}" != "on"; then \
 		echo "invalid luks setting, options are: on, off"; \
 		exit 1; \
 	fi
 	@echo "target: USB armory IMX=${IMX} BOOT=${BOOT}"
+
+define copy_to_bootfs
+	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb
+	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory
+	sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory
+	sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory
+	@if test "${SIGNED}" = "on"; then \
+			echo '${BOOT_PRIVATE_KEY_PASSWORD}' | signify-openbsd -S -s ${BOOT_PRIVATE_KEY} -m bootfs/boot/armory-boot.conf -x bootfs/boot/armory-boot.conf.sig; \
+	fi
+	@if test "${BOOTLOADER}" = "armory-boot"; then \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r armory-boot.conf.tmpl bootfs/boot/armory-boot.conf; \
+		sed -i 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
+		sed -i 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
+		sed -i 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' bootfs/boot/armory-boot.conf; \
+		sed -i 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' bootfs/boot/armory-boot.conf; \
+		cd bootfs; \
+			ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
+			ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
+			ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb; \
+	else \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/boot/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
+		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/boot/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/.config bootfs/boot/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		sudo cp -r linux-${LINUX_VER}/System.map bootfs/boot/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
+		cd bootfs/boot ; ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
+		cd bootfs/boot ; ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
+		cd bootfs/boot ; ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb; \
+	fi
+endef
 
 #### armory-boot ####
 armory-boot-master.zip:
@@ -147,7 +183,22 @@ u-boot-${UBOOT_VER}/u-boot.bin: check_params u-boot-${UBOOT_VER}.tar.bz2
 	fi
 	cd u-boot-${UBOOT_VER} && CROSS_COMPILE=arm-linux-gnueabihf- ARCH=arm make -j${JOBS}
 
-# bootfs.img: linux-${LINUX_VER}/arch/arm/boot/zImage
+usbarmory-boot-${IMG_VERSION}.img: linux-${LINUX_VER}/arch/arm/boot/zImage
+	truncate -s ${BOOT_PARTITION_SIZE_MEGS}MiB usbarmory-boot-${IMG_VERSION}.img
+	# setup partition type
+	sudo /sbin/parted usbarmory-boot-${IMG_VERSION}.img --script mklabel msdos
+	# setup boot partition
+	sudo /sbin/parted usbarmory-boot-${IMG_VERSION}.img --script mkpart primary ext4 0% 100%
+	sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-boot-${IMG_VERSION}.img
+	sudo /sbin/mkfs.ext4 -F $(LOSETUP_DEV)
+	sudo /sbin/losetup -d $(LOSETUP_DEV)
+	# Mount bootfs
+	mkdir -p bootfs
+	sudo mount -o loop -t ext4 usbarmory-boot-${IMG_VERSION}.img bootfs/
+	sudo mkdir -p bootfs/boot
+	# copy all the boot partition files
+	$(call copy_to_bootfs)
+	sudo umount bootfs
 
 #### debian ####
 DEBIAN_DEPS := check_params
@@ -176,8 +227,8 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 		sudo /sbin/losetup $(LOSETUP_DEV) usbarmory-${IMG_VERSION}.img; \
 		sudo /usr/sbin/kpartx -a $(LOSETUP_DEV); \
 		echo -e "Creating luks partition with password: ${LUKS_PASSWORD}"; \
-		printf ${LUKS_PASSWORD} | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-force-iterations ${LUKS_PBKDF_TIME_COST} --pbkdf-memory ${LUKS_PBKDF_MEMORY} --pbkdf-parallel ${LUKS_PBKDF_PARALLEL} luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
-		printf ${LUKS_PASSWORD} | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
+		printf "${LUKS_PASSWORD}" | cryptsetup -y --cipher aes-xts-plain64 --pbkdf-force-iterations ${LUKS_PBKDF_TIME_COST} --pbkdf-memory ${LUKS_PBKDF_MEMORY} --pbkdf-parallel ${LUKS_PBKDF_PARALLEL} luksFormat /dev/mapper/${LOOP_DEV}p2 -; \
+		printf "${LUKS_PASSWORD}" | cryptsetup luksOpen /dev/mapper/${LOOP_DEV}p2 ${ROOTFS_MAPPER_NAME} -d -; \
 		sudo /sbin/mkfs.ext4 -F /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		cryptsetup luksClose /dev/mapper/${ROOTFS_MAPPER_NAME}; \
 		sudo /usr/sbin/kpartx -d $(LOSETUP_DEV); \
@@ -187,34 +238,8 @@ usbarmory-${IMG_VERSION}.img: $(DEBIAN_DEPS)
 	mkdir -p bootfs
 	sudo mount -o loop,offset=${BOOT_PARTITION_OFFSET} -t ext4 usbarmory-${IMG_VERSION}.img bootfs/
 	sudo mkdir -p bootfs/boot
-	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb
-	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory
-	sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory
-	sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory
-	@if test "${BOOTLOADER}" = "armory-boot"; then \
-		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
-		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
-		sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
-		sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
-		sudo cp -r armory-boot.conf.tmpl bootfs/boot/armory-boot.conf; \
-		sed -i 's/ZIMAGE_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/zImage | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
-		sed -i 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
-		sed -i 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' bootfs/boot/armory-boot.conf; \
-		sed -i 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' bootfs/boot/armory-boot.conf; \
-		echo ${BOOT_PRIVATE_KEY_PASSWORD} | signify-openbsd -S -s ${BOOT_PRIVATE_KEY} -m bootfs/boot/armory-boot.conf -x bootfs/boot/armory-boot.conf.sig; \
-		cd bootfs; \
-			ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
-			ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
-			ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb; \
-	else \
-		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/boot/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
-		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/boot/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
-		sudo cp -r linux-${LINUX_VER}/.config bootfs/boot/config-${LINUX_VER}${LOCALVERSION}-usbarmory; \
-		sudo cp -r linux-${LINUX_VER}/System.map bootfs/boot/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory; \
-		cd bootfs/boot ; ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
-		cd bootfs/boot ; ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
-		cd bootfs/boot ; ln -sf ${IMX}-usbarmory.dtb imx6ull-usbarmory.dtb; \
-	fi
+	# copy all the boot partition files
+	$(call copy_to_bootfs)
 	sudo umount bootfs
 	# Mount rootfs
 	mkdir -p rootfs
@@ -496,10 +521,12 @@ armoryctl_${ARMORYCTL_VER}_armhf.deb: armoryctl-${ARMORYCTL_VER}/armoryctl
 
 .PHONY: u-boot debian debian-xz linux linux-image-deb linux-headers-deb
 .PHONY: mxs-dcp mxc-scc2 caam-keyblob armoryctl armoryctl-deb busybox
+.PHONY: boot.img
 
 u-boot: u-boot-${UBOOT_VER}/u-boot.bin
 debian: usbarmory-${IMG_VERSION}.img
 debian-xz: usbarmory-${IMG_VERSION}.img.xz
+boot.img: usbarmory-boot-${IMG_VERSION}.img
 linux: linux-${LINUX_VER}/arch/arm/boot/zImage
 linux-image-deb: linux-image-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
 linux-headers-deb: linux-headers-${LINUX_VER_MAJOR}-usbarmory-${LINUX_VER}${LOCALVERSION}_armhf.deb
@@ -510,8 +537,9 @@ caam-keyblob: caam-keyblob-master/caam-keyblob.ko
 armoryctl: armoryctl-${ARMORYCTL_VER}/armoryctl
 armoryctl-deb: armoryctl_${ARMORYCTL_VER}_armhf.deb
 armory-boot: armory-boot.imx
+armory-boot-signed: armory-boot-signed.imx
 
-release: prebuild check_params usbarmory-${IMG_VERSION}.img.xz
+release: check_params usbarmory-${IMG_VERSION}.img.xz
 	sha256sum usbarmory-${IMG_VERSION}.img.xz > usbarmory-${IMG_VERSION}.img.xz.sha256
 	@if test "${LUKS}" = "on"; then \
 		echo -e "The LUKS password is: ${LUKS_PASSWORD}"; \
