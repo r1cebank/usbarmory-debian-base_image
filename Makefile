@@ -42,13 +42,10 @@ LOOP_DEV=$(shell /usr/bin/basename $(LOSETUP_DEV))
 
 .DEFAULT_GOAL := release
 
-SIGNED=off
-BOOT_PRIVATE_KEY ?= /opt/pki-keys/armory-boot.asc
+SIGNED ?= off
+BOOT_PRIVATE_KEY ?= /opt/pki-keys/armory-boot.sec
 BOOT_PUBLIC_KEY ?= undefined
 HAB_KEYS ?= /opt/pki-keys
-ifeq ($(SIGNED), on)
-	BOOT_PRIVATE_KEY_PASSWORD ?= $(shell bash -c 'read -s -p "Boot certificate password: " pwd; echo $$pwd')
-endif
 LUKS=off
 
 # tuned to provide reasonable startup time on usbarmory
@@ -124,9 +121,6 @@ define copy_to_bootfs
 	sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory
 	sudo cp -r linux-${LINUX_VER}/.config bootfs/config-${LINUX_VER}${LOCALVERSION}-usbarmory
 	sudo cp -r linux-${LINUX_VER}/System.map bootfs/System.map-${LINUX_VER}${LOCALVERSION}-usbarmory
-	@if test "${SIGNED}" = "on"; then \
-			echo '${BOOT_PRIVATE_KEY_PASSWORD}' | signify-openbsd -S -s ${BOOT_PRIVATE_KEY} -m bootfs/boot/armory-boot.conf -x bootfs/boot/armory-boot.conf.sig; \
-	fi
 	@if test "${BOOTLOADER}" = "armory-boot"; then \
 		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb bootfs/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb; \
 		sudo cp -r linux-${LINUX_VER}/arch/arm/boot/zImage bootfs/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory; \
@@ -137,6 +131,10 @@ define copy_to_bootfs
 		sed -i 's/DTB_HASH/$(shell sha256sum /opt/armory/linux-${LINUX_VER}/arch/arm/boot/dts/${IMX}-usbarmory.dtb | cut -d " " -f 1)/' bootfs/boot/armory-boot.conf; \
 		sed -i 's/ZIMAGE/zImage-${LINUX_VER}${LOCALVERSION}-usbarmory/' bootfs/boot/armory-boot.conf; \
 		sed -i 's/DTB/${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb/' bootfs/boot/armory-boot.conf; \
+		if test "${SIGNED}" = "on"; then \
+			echo "${BOOT_PRIVATE_KEY_PASSWORD}"; \
+			signify-openbsd -S -s ${BOOT_PRIVATE_KEY} -m bootfs/boot/armory-boot.conf -x bootfs/boot/armory-boot.conf.sig; \
+		fi; \
 		cd bootfs; \
 			ln -sf zImage-${LINUX_VER}${LOCALVERSION}-usbarmory zImage; \
 			ln -sf ${IMX}-usbarmory-default-${LINUX_VER}${LOCALVERSION}.dtb ${IMX}-usbarmory.dtb; \
