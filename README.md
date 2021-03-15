@@ -194,6 +194,47 @@ sudo dd if=usbarmory-*-debian_buster-base_image-YYYYMMDD.img of=/dev/rdiskN bs=1
 On Windows, and other OSes, alternatively the [Etcher](https://etcher.io)
 utility can be used.
 
+## LUKS resize
+After install and confirming the image works on your device, you might want to extend the LUKS partition to fill the rest of your storage device, you can follow the guide here:
+https://unix.stackexchange.com/questions/320957/extend-a-luks-encrypted-partition-to-fill-disk
+
+```
+sudo parted /dev/sdX (your sd card)
+> resizepart 2 100%
+> q
+
+sudo cryptsetup resize [mapper name]
+
+sudo e2fsck -f /dev/mapper/[mapper name]
+sudo resize2fs /dev/mapper/[mapper name]
+```
+
+## Bootup sequence
+During the boot sequence, various LED will be lit up indicating the stage of the boot sequence. The boot will come in two stages for secure boot with LUKS.
+
+1. Secure Boot
+2. LUKS Unlock
+
+Here are the LED sequence to look for if you do not have an debug cable or console is turned off on your device.
+
+### Secure Boot (armory-boot)
+
+| Boot sequence                   | Blue | White |
+|---------------------------------|------|-------|
+| 0. initialization               | off  | off   |
+| 1. boot media detected          | on   | off   |
+| 2. kernel verification complete | on   | on    |
+| 3. jumping to kernel image      | off  | off   |
+
+### LUKS Unlock
+
+| Unlock sequence                 | Blue | White |
+|---------------------------------|------|-------|
+| 0. kernel module loaded         | off  | on    |
+| 1. before LUKS unlock           | on   | on    |
+| 2. LUKS unlocked                | off  | on    |
+| 3. before calling switch_root   | off  | off   |
+
 ### Accessing the USB armory Mk II internal eMMC as USB storage device
 
 Set the USB armory Mk II to boot in Serial Boot Loader by setting the boot
@@ -206,7 +247,7 @@ usb 1-1: new high-speed USB device number 8 using xhci_hcd
 usb 1-1: New USB device found, idVendor=15a2, idProduct=0080, bcdDevice= 0.01
 usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
 usb 1-1: Product: SE Blank 6ULL
-usb 1-1: Manufacturer: Freescale SemiConductor Inc 
+usb 1-1: Manufacturer: Freescale SemiConductor Inc
 hid-generic 0003:15A2:0080.0003: hiddev96,hidraw1: USB HID v1.10 Device [Freescale SemiConductor Inc  SE Blank 6ULL] on usb-0000:00:14.0-1/input0
 ```
 
@@ -242,7 +283,6 @@ load average, via the Linux Heartbeat Trigger driver. In case this is
 undesired, the heartbeat can be disabled by removing the `ledtrig_heartbeat`
 module in `/etc/modules`. More information about LED control
 [here](https://github.com/f-secure-foundry/usbarmory/wiki/GPIOs#led-control).
-
 ## Resizing
 
 The default image is 4GB of size, to use the full microSD/eMMC space a new partition
